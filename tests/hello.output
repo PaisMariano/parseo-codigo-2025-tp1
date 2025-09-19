@@ -1,0 +1,9 @@
+TOKEN_CLASS -> class
+TOKEN_CREATE -> create
+TOKEN_FEATURE -> feature
+TOKEN_DO -> do
+TOKEN_LPAREN -> (
+TOKEN_STRING -> "Hola, Eiffel!%N"
+TOKEN_RPAREN -> )
+TOKEN_END -> end
+TOKEN_END -> end
