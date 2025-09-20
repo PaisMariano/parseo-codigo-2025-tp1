@@ -1,0 +1,8 @@
+# Archivos generados por el Makefile
+eiffel_lex
+lex.yy.c
+parser.tab.c
+parser.tab.h
+
+# Configuración del IDE
+.idea/
