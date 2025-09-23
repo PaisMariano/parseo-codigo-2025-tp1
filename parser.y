@@ -58,6 +58,7 @@ token:
     | TOKEN_COMMA
     | TOKEN_COLON
     | TOKEN_DOT
+    | TOKEN_LOCAL
     ;
 %%
 
@@ -98,6 +99,7 @@ const char* token_name(int tok) {
         case TOKEN_COMMA: return "TOKEN_COMMA";
         case TOKEN_COLON: return "TOKEN_COLON";
         case TOKEN_DOT: return "TOKEN_DOT";
+        case TOKEN_LOCAL: return "TOKEN_LOCAL";
         default: return "TOKEN_UNKNOWN";
     }
 }

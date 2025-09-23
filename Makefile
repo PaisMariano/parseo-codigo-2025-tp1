@@ -22,11 +22,18 @@ endif
 clean:
 	rm -f parser.tab.c parser.tab.h lex.yy.c eiffel_lex
 
+TESTS := $(basename $(wildcard tests/*.e))
+
 test: eiffel_lex
-	@echo "Ejecutando tests..."
-	@for f in tests/*.e; do \
-		echo "==== $$f ===="; \
-		./eiffel_lex < $$f; \
+	@for t in $(TESTS); do \
+		echo "Running test $$t..."; \
+		./eiffel_lex < $$t.e > $$t.result; \
+		if diff -q $$t.result $$t.expected > /dev/null; then \
+			echo "  ✅ PASSED"; \
+			rm -f $$t.result; \
+		else \
+			echo "  ❌ FAILED (see $$t.result vs $$t.expected)"; \
+		fi \
 	done
 
 .PHONY: all clean test

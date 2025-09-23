@@ -58,7 +58,10 @@ extern int yylineno;
 "or"        { printf("TOKEN_OR -> %s\n", yytext); return TOKEN_OR; }
 
 
-[A-Za-z_][A-Za-z0-9_]* { return TOKEN_IDENTIFIER; }
+[A-Za-z_][A-Za-z0-9_]* {
+    printf("TOKEN_IDENTIFIER -> %s\n", yytext);
+    return TOKEN_IDENTIFIER;
+}
 
 . { printf("TOKEN_UNKNOWN -> %s\n", yytext); }
 
