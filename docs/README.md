@@ -10,9 +10,10 @@ En esta primera parte solo se requiere el *lexer* (Flex).
 parseo-codigo-2025-tp1/
 ├── docs/
 │   └── eiffel_tokens.md      # Documentación de tokens definidos
+│   └── Informe Trabajo Practico  # Informe del trabajo práctico
 ├── tests/
 │   ├── hello.e               # Programa Eiffel de prueba
-│   ├── hello.output          # Salida esperada del lexer
+│   ├── hello.expected          # Salida esperada del lexer
 ├── lexer.l                   # Definiciones léxicas (Flex)
 ├── parser.y                  # Gramática (Bison, mínima en esta etapa)
 ├── parser.tab.c              # Código generado por Bison
@@ -88,7 +89,7 @@ diff tests/hello.result tests/hello.output
 
 Si no hay diferencias, el lexer funciona correctamente.
 
-Con Makefile (target sugerido):
+Con Makefile:
 
 ```
 make test
