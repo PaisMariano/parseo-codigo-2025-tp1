@@ -28,38 +28,48 @@ input:
     ;
 
 token:
-      TOKEN_CLASS
-    | TOKEN_CREATE
-    | TOKEN_FEATURE
-    | TOKEN_DO
-    | TOKEN_END
-    | TOKEN_IF
-    | TOKEN_THEN
-    | TOKEN_ELSE
-    | TOKEN_FROM
-    | TOKEN_UNTIL
-    | TOKEN_LOOP
-    | TOKEN_IDENTIFIER
-    | TOKEN_NUMBER
-    | TOKEN_STRING
-    | TOKEN_ASSIGN
-    | TOKEN_LE
-    | TOKEN_GE
-    | TOKEN_EQ
-    | TOKEN_LT
-    | TOKEN_GT
-    | TOKEN_PLUS
-    | TOKEN_MINUS
-    | TOKEN_MULT
-    | TOKEN_DIV
-    | TOKEN_LPAREN
-    | TOKEN_RPAREN
-    | TOKEN_SEMI
-    | TOKEN_COMMA
-    | TOKEN_COLON
-    | TOKEN_DOT
-    | TOKEN_LOCAL
-    ;
+        TOKEN_CLASS
+      | TOKEN_CREATE
+      | TOKEN_FEATURE
+      | TOKEN_DO
+      | TOKEN_END
+      | TOKEN_IF
+      | TOKEN_THEN
+      | TOKEN_ELSE
+      | TOKEN_FROM
+      | TOKEN_UNTIL
+      | TOKEN_LOOP
+      | TOKEN_INHERIT
+      | TOKEN_CHECK
+      | TOKEN_REQUIRE
+      | TOKEN_ENSURE
+      | TOKEN_LOCAL
+      | TOKEN_ALIAS
+      | TOKEN_IS
+      | TOKEN_WHEN
+      | TOKEN_NOT
+      | TOKEN_AND
+      | TOKEN_OR
+      | TOKEN_IDENTIFIER
+      | TOKEN_NUMBER
+      | TOKEN_STRING
+      | TOKEN_ASSIGN
+      | TOKEN_LE
+      | TOKEN_GE
+      | TOKEN_EQ
+      | TOKEN_LT
+      | TOKEN_GT
+      | TOKEN_PLUS
+      | TOKEN_MINUS
+      | TOKEN_MULT
+      | TOKEN_DIV
+      | TOKEN_LPAREN
+      | TOKEN_RPAREN
+      | TOKEN_SEMI
+      | TOKEN_COMMA
+      | TOKEN_COLON
+      | TOKEN_DOT
+      ;
 %%
 
 void yyerror(const char *s) {
@@ -80,26 +90,36 @@ const char* token_name(int tok) {
         case TOKEN_FROM: return "TOKEN_FROM";
         case TOKEN_UNTIL: return "TOKEN_UNTIL";
         case TOKEN_LOOP: return "TOKEN_LOOP";
+        case TOKEN_INHERIT: return "TOKEN_INHERIT";
+        case TOKEN_CHECK: return "TOKEN_CHECK";
+        case TOKEN_REQUIRE: return "TOKEN_REQUIRE";
+        case TOKEN_ENSURE: return "TOKEN_ENSURE";
+        case TOKEN_LOCAL: return "TOKEN_LOCAL";
+        case TOKEN_ALIAS: return "TOKEN_ALIAS";
+        case TOKEN_IS: return "TOKEN_IS";
+        case TOKEN_WHEN: return "TOKEN_WHEN";
+        case TOKEN_NOT: return "TOKEN_NOT";
+        case TOKEN_AND: return "TOKEN_AND";
+        case TOKEN_OR: return "TOKEN_OR";
         case TOKEN_IDENTIFIER: return "TOKEN_IDENTIFIER";
         case TOKEN_NUMBER: return "TOKEN_NUMBER";
         case TOKEN_STRING: return "TOKEN_STRING";
         case TOKEN_ASSIGN: return "TOKEN_ASSIGN";
+        case TOKEN_LE: return "TOKEN_LE";
+        case TOKEN_GE: return "TOKEN_GE";
+        case TOKEN_EQ: return "TOKEN_EQ";
+        case TOKEN_LT: return "TOKEN_LT";
+        case TOKEN_GT: return "TOKEN_GT";
         case TOKEN_PLUS: return "TOKEN_PLUS";
         case TOKEN_MINUS: return "TOKEN_MINUS";
         case TOKEN_MULT: return "TOKEN_MULT";
         case TOKEN_DIV: return "TOKEN_DIV";
-        case TOKEN_EQ: return "TOKEN_EQ";
-        case TOKEN_LT: return "TOKEN_LT";
-        case TOKEN_GT: return "TOKEN_GT";
-        case TOKEN_LE: return "TOKEN_LE";
-        case TOKEN_GE: return "TOKEN_GE";
         case TOKEN_LPAREN: return "TOKEN_LPAREN";
         case TOKEN_RPAREN: return "TOKEN_RPAREN";
         case TOKEN_SEMI: return "TOKEN_SEMI";
         case TOKEN_COMMA: return "TOKEN_COMMA";
         case TOKEN_COLON: return "TOKEN_COLON";
         case TOKEN_DOT: return "TOKEN_DOT";
-        case TOKEN_LOCAL: return "TOKEN_LOCAL";
         default: return "TOKEN_UNKNOWN";
     }
 }
