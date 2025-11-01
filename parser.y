@@ -1,75 +1,117 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
-extern char *yytext;   /* provisto por Flex */
+#include "ast.h"
+#include "interpreter.h" // Incluye el intérprete
+
+extern char *yytext;
 extern int yylineno;
 int yylex(void);
 extern FILE *yyin;
 
 void yyerror(const char *s);
+AstNode *root; // Variable global para guardar la raíz del AST
 %}
 
-%debug
+/* Definir los tipos de valores semánticos */
+%union {
+    int int_val;
+    double real_val;
+    char *string_val;
+    AstNode *node; // Puntero a un nodo del AST
+}
 
-%token TOKEN_CLASS TOKEN_CREATE TOKEN_FEATURE TOKEN_DO TOKEN_END
+/* Asociar tipos a tokens y reglas no terminales */
+%token <string_val> TOKEN_IDENTIFIER TOKEN_STRING
+%token <int_val> TOKEN_NUMBER_INT
+%token <real_val> TOKEN_NUMBER_REAL
+
+%token TOKEN_CLASS TOKEN_FEATURE TOKEN_DO TOKEN_END
 %token TOKEN_IF TOKEN_THEN TOKEN_ELSE TOKEN_FROM TOKEN_UNTIL TOKEN_LOOP
-%token TOKEN_INHERIT TOKEN_CHECK TOKEN_REQUIRE TOKEN_ENSURE TOKEN_LOCAL
-%token TOKEN_ALIAS TOKEN_IS TOKEN_WHEN
-%token TOKEN_NOT TOKEN_AND TOKEN_OR
-%token TOKEN_IDENTIFIER TOKEN_NUMBER TOKEN_STRING
 %token TOKEN_ASSIGN TOKEN_LE TOKEN_GE TOKEN_EQ TOKEN_LT TOKEN_GT
 %token TOKEN_PLUS TOKEN_MINUS TOKEN_MULT TOKEN_DIV
-%token TOKEN_LPAREN TOKEN_RPAREN TOKEN_SEMI TOKEN_COMMA TOKEN_COLON TOKEN_DOT
+%token TOKEN_LPAREN TOKEN_RPAREN TOKEN_SEMI TOKEN_COLON
+
+/* Precedencia de operadores */
+%left TOKEN_PLUS TOKEN_MINUS
+%left TOKEN_MULT TOKEN_DIV
+
+/* El tipo de las reglas que devuelven un puntero a un nodo del AST */
+%type <node> program class_declaration feature_list feature_declaration
+%type <node> statement_list statement assignment_statement if_statement
+%type <node> expression term factor
 
 %%
-input:
-      /* vacío */
-    | input token
+
+/* Reglas de la gramática y construcción del AST */
+
+program:
+    class_declaration { root = $1; }
     ;
 
-token:
-        TOKEN_CLASS
-      | TOKEN_CREATE
-      | TOKEN_FEATURE
-      | TOKEN_DO
-      | TOKEN_END
-      | TOKEN_IF
-      | TOKEN_THEN
-      | TOKEN_ELSE
-      | TOKEN_FROM
-      | TOKEN_UNTIL
-      | TOKEN_LOOP
-      | TOKEN_INHERIT
-      | TOKEN_CHECK
-      | TOKEN_REQUIRE
-      | TOKEN_ENSURE
-      | TOKEN_LOCAL
-      | TOKEN_ALIAS
-      | TOKEN_IS
-      | TOKEN_WHEN
-      | TOKEN_NOT
-      | TOKEN_AND
-      | TOKEN_OR
-      | TOKEN_IDENTIFIER
-      | TOKEN_NUMBER
-      | TOKEN_STRING
-      | TOKEN_ASSIGN
-      | TOKEN_LE
-      | TOKEN_GE
-      | TOKEN_EQ
-      | TOKEN_LT
-      | TOKEN_GT
-      | TOKEN_PLUS
-      | TOKEN_MINUS
-      | TOKEN_MULT
-      | TOKEN_DIV
-      | TOKEN_LPAREN
-      | TOKEN_RPAREN
-      | TOKEN_SEMI
-      | TOKEN_COMMA
-      | TOKEN_COLON
-      | TOKEN_DOT
-      ;
+class_declaration:
+    TOKEN_CLASS TOKEN_IDENTIFIER TOKEN_FEATURE feature_list TOKEN_END {
+        $$ = $4;
+    }
+    ;
+
+feature_list:
+    feature_declaration { $$ = $1; }
+    ;
+
+feature_declaration:
+    TOKEN_IDENTIFIER TOKEN_DO statement_list TOKEN_END {
+        $$ = $3;
+    }
+    ;
+
+statement_list:
+      statement { $$ = $1; }
+    | statement_list TOKEN_SEMI statement {
+        // Por simplicidad, solo se considera la última sentencia para la evaluación.
+        // Una implementación real usaría una lista de nodos.
+        $$ = $3;
+    }
+    ;
+
+statement:
+      assignment_statement { $$ = $1; }
+    | if_statement         { $$ = $1; }
+    | expression           { $$ = $1; } // Permitir expresiones como sentencias
+    ;
+
+assignment_statement:
+    TOKEN_IDENTIFIER TOKEN_ASSIGN expression {
+        // $$ = create_assignment_node($1, $3); // A implementar
+    }
+    ;
+
+if_statement:
+    TOKEN_IF expression TOKEN_THEN statement_list TOKEN_ELSE statement_list TOKEN_END {
+        // $$ = create_if_node($2, $4, $6); // A implementar
+    }
+    ;
+
+expression:
+      term { $$ = $1; }
+    | expression TOKEN_PLUS term { $$ = create_binary_expr_node('+', $1, $3); }
+    | expression TOKEN_MINUS term { $$ = create_binary_expr_node('-', $1, $3); }
+    ;
+
+term:
+      factor { $$ = $1; }
+    | term TOKEN_MULT factor { $$ = create_binary_expr_node('*', $1, $3); }
+    | term TOKEN_DIV factor { $$ = create_binary_expr_node('/', $1, $3); }
+    ;
+
+factor:
+      TOKEN_NUMBER_INT { $$ = create_int_literal_node($1); }
+    | TOKEN_NUMBER_REAL { $$ = create_real_literal_node($1); }
+    | TOKEN_STRING { $$ = create_string_literal_node($1); }
+    | TOKEN_IDENTIFIER { /* $$ = create_var_ref_node($1); */ }
+    | TOKEN_LPAREN expression TOKEN_RPAREN { $$ = $2; }
+    ;
+
 %%
 
 void yyerror(const char *s) {
@@ -77,55 +119,26 @@ void yyerror(const char *s) {
             yylineno, yytext, s);
 }
 
-const char* token_name(int tok) {
-    switch(tok) {
-        case TOKEN_CLASS: return "TOKEN_CLASS";
-        case TOKEN_CREATE: return "TOKEN_CREATE";
-        case TOKEN_FEATURE: return "TOKEN_FEATURE";
-        case TOKEN_DO: return "TOKEN_DO";
-        case TOKEN_END: return "TOKEN_END";
-        case TOKEN_IF: return "TOKEN_IF";
-        case TOKEN_THEN: return "TOKEN_THEN";
-        case TOKEN_ELSE: return "TOKEN_ELSE";
-        case TOKEN_FROM: return "TOKEN_FROM";
-        case TOKEN_UNTIL: return "TOKEN_UNTIL";
-        case TOKEN_LOOP: return "TOKEN_LOOP";
-        case TOKEN_INHERIT: return "TOKEN_INHERIT";
-        case TOKEN_CHECK: return "TOKEN_CHECK";
-        case TOKEN_REQUIRE: return "TOKEN_REQUIRE";
-        case TOKEN_ENSURE: return "TOKEN_ENSURE";
-        case TOKEN_LOCAL: return "TOKEN_LOCAL";
-        case TOKEN_ALIAS: return "TOKEN_ALIAS";
-        case TOKEN_IS: return "TOKEN_IS";
-        case TOKEN_WHEN: return "TOKEN_WHEN";
-        case TOKEN_NOT: return "TOKEN_NOT";
-        case TOKEN_AND: return "TOKEN_AND";
-        case TOKEN_OR: return "TOKEN_OR";
-        case TOKEN_IDENTIFIER: return "TOKEN_IDENTIFIER";
-        case TOKEN_NUMBER: return "TOKEN_NUMBER";
-        case TOKEN_STRING: return "TOKEN_STRING";
-        case TOKEN_ASSIGN: return "TOKEN_ASSIGN";
-        case TOKEN_LE: return "TOKEN_LE";
-        case TOKEN_GE: return "TOKEN_GE";
-        case TOKEN_EQ: return "TOKEN_EQ";
-        case TOKEN_LT: return "TOKEN_LT";
-        case TOKEN_GT: return "TOKEN_GT";
-        case TOKEN_PLUS: return "TOKEN_PLUS";
-        case TOKEN_MINUS: return "TOKEN_MINUS";
-        case TOKEN_MULT: return "TOKEN_MULT";
-        case TOKEN_DIV: return "TOKEN_DIV";
-        case TOKEN_LPAREN: return "TOKEN_LPAREN";
-        case TOKEN_RPAREN: return "TOKEN_RPAREN";
-        case TOKEN_SEMI: return "TOKEN_SEMI";
-        case TOKEN_COMMA: return "TOKEN_COMMA";
-        case TOKEN_COLON: return "TOKEN_COLON";
-        case TOKEN_DOT: return "TOKEN_DOT";
-        default: return "TOKEN_UNKNOWN";
-    }
-}
-
 int main(int argc, char **argv) {
-    if (argc > 1) yyin = fopen(argv[1], "r");
+    if (argc > 1) {
+        yyin = fopen(argv[1], "r");
+        if (!yyin) {
+            perror(argv[1]);
+            return 1;
+        }
+    } else {
+        yyin = stdin;
+    }
+
     yyparse();
+
+    if (root) {
+        printf("AST construido. Evaluando...\n");
+        RuntimeValue final_result = eval_ast(root);
+        print_value(final_result);
+        printf("\n");
+        free_ast(root);
+    }
+
     return 0;
 }
