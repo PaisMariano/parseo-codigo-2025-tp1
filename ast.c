@@ -99,3 +99,21 @@ void print_ast(AstNode *node, FILE *output) {
 void free_ast(AstNode *node) {
     // Implementación futura
 }
+
+AstNode* create_if_node(AstNode* condition, StatementListNode* then_branch, StatementListNode* else_branch) {
+    IfNode* node = malloc(sizeof(IfNode));
+    node->base.type = NODE_TYPE_IF;
+    node->condition = condition;
+    node->then_branch = then_branch;
+    node->else_branch = else_branch;
+    return (AstNode*)node;
+}
+
+AstNode* create_comparison_expr_node(int op, AstNode* left, AstNode* right) {
+    ComparisonExprNode* node = malloc(sizeof(ComparisonExprNode));
+    node->base.type = NODE_TYPE_COMPARISON_EXPR;
+    node->op = op;
+    node->left = left;
+    node->right = right;
+    return (AstNode*)node;
+}
