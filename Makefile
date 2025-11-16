@@ -8,10 +8,10 @@ UNAME_S := $(shell uname -s)
 TARGET=interpreter
 
 # Archivos fuente
-SOURCES=parser.tab.c lex.yy.c ast.c interpreter.c
+SOURCES=parser.tab.c lex.yy.c ast.c interpreter.c main.c
 
 # Archivos de prueba para el target 'test' original
-TESTS := $(basename $(wildcard tests/*.e))
+TESTS := $(basename $(wildcard tests/TP1/*.e))
 
 all: $(TARGET)
 
@@ -23,7 +23,7 @@ lex.yy.c: lexer.l parser.tab.h
 	$(FLEX) -o lex.yy.c lexer.l
 
 # Regla para compilar y enlazar el intérprete completo
-$(TARGET): parser.tab.c lex.yy.c ast.c interpreter.c
+$(TARGET): parser.tab.c lex.yy.c ast.c interpreter.c main.c
 ifeq ($(UNAME_S),Darwin)
 	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES)
 else
@@ -32,8 +32,17 @@ endif
 
 # Nuevo target para ejecutar una prueba específica del intérprete
 test-interpreter: $(TARGET)
-	@echo "--- Running Interpreter Test ---"
-	./$(TARGET) tests/test-interpreter.e
+		@echo "--- Running Interpreter Tests in tests/TP2 ---"
+		@for t in tests/TP2/*.e; do \
+			echo "Running test $$t..."; \
+			./$(TARGET) < $$t > $$t.result; \
+			if diff -q $$t.result $$t.expected > /dev/null; then \
+				echo "  ✅ PASSED"; \
+				rm -f $$t.result; \
+			else \
+				echo "  ❌ FAILED (see $$t.result vs $$t.expected)"; \
+			fi \
+		done
 
 clean:
 	rm -f parser.tab.c parser.tab.h lex.yy.c $(TARGET)

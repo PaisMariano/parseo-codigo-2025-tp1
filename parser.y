@@ -1,144 +1,132 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "ast.h"
-#include "interpreter.h" // Incluye el intérprete
 
 extern char *yytext;
 extern int yylineno;
 int yylex(void);
 extern FILE *yyin;
 
-void yyerror(const char *s);
-AstNode *root; // Variable global para guardar la raíz del AST
+void yyerror(AstNode **root, const char *s);
+AstNode *root_node;
 %}
 
-/* Definir los tipos de valores semánticos */
 %union {
     int int_val;
     double real_val;
     char *string_val;
-    AstNode *node; // Puntero a un nodo del AST
+    AstNode *node;
+    struct ArgumentListNode *arg_list;
+    struct StatementListNode *stmt_list;
 }
 
-/* Asociar tipos a tokens y reglas no terminales */
 %token <string_val> TOKEN_IDENTIFIER TOKEN_STRING
 %token <int_val> TOKEN_NUMBER_INT
 %token <real_val> TOKEN_NUMBER_REAL
 
-%token TOKEN_CLASS TOKEN_FEATURE TOKEN_DO TOKEN_END
-%token TOKEN_IF TOKEN_THEN TOKEN_ELSE TOKEN_FROM TOKEN_UNTIL TOKEN_LOOP
+%token TOKEN_CLASS TOKEN_FEATURE TOKEN_DO TOKEN_END TOKEN_IF TOKEN_THEN TOKEN_ELSE
+%token TOKEN_FROM TOKEN_UNTIL TOKEN_LOOP TOKEN_LOCAL
 %token TOKEN_ASSIGN TOKEN_LE TOKEN_GE TOKEN_EQ TOKEN_LT TOKEN_GT
 %token TOKEN_PLUS TOKEN_MINUS TOKEN_MULT TOKEN_DIV
-%token TOKEN_LPAREN TOKEN_RPAREN TOKEN_SEMI TOKEN_COLON
+%token TOKEN_LPAREN TOKEN_RPAREN TOKEN_SEMI TOKEN_COLON TOKEN_COMMA
 
-/* Precedencia de operadores */
-%left TOKEN_PLUS TOKEN_MINUS
-%left TOKEN_MULT TOKEN_DIV
+%type <node> program class_declaration feature_declaration expression statement
+%type <node> if_statement loop_statement
+%type <stmt_list> statement_list optional_statements
+%type <arg_list> argument_list
 
-/* El tipo de las reglas que devuelven un puntero a un nodo del AST */
-%type <node> program class_declaration feature_list feature_declaration
-%type <node> statement_list statement assignment_statement if_statement
-%type <node> expression term factor
+%parse-param { AstNode **root }
 
 %%
 
-/* Reglas de la gramática y construcción del AST */
-
 program:
-    class_declaration { root = $1; }
+    class_declaration { *root = $1; }
     ;
 
 class_declaration:
-    TOKEN_CLASS TOKEN_IDENTIFIER TOKEN_FEATURE feature_list TOKEN_END {
-        $$ = $4;
-    }
-    ;
-
-feature_list:
-    feature_declaration { $$ = $1; }
+    TOKEN_CLASS TOKEN_IDENTIFIER TOKEN_FEATURE feature_declaration TOKEN_END { $$ = $4; }
     ;
 
 feature_declaration:
-    TOKEN_IDENTIFIER TOKEN_DO statement_list TOKEN_END {
-        $$ = $3;
-    }
+    TOKEN_IDENTIFIER opt_formal_args local_clause TOKEN_DO statement_list TOKEN_END { $$ = (AstNode*)$5; }
+    ;
+
+opt_formal_args:
+    TOKEN_LPAREN TOKEN_RPAREN
+    | /* empty */
+    ;
+
+local_clause:
+    TOKEN_LOCAL declarations
+    | /* empty */
+    ;
+
+declarations:
+    declaration_list
+    ;
+
+declaration_list:
+    identifier_list TOKEN_COLON type
+    | declaration_list TOKEN_SEMI identifier_list TOKEN_COLON type
+    ;
+
+identifier_list:
+    TOKEN_IDENTIFIER { free($1); }
+    | identifier_list TOKEN_COMMA TOKEN_IDENTIFIER { free($3); }
+    ;
+
+type:
+    TOKEN_IDENTIFIER { free($1); }
     ;
 
 statement_list:
-      statement { $$ = $1; }
-    | statement_list TOKEN_SEMI statement {
-        // Por simplicidad, solo se considera la última sentencia para la evaluación.
-        // Una implementación real usaría una lista de nodos.
-        $$ = $3;
-    }
+    statement { $$ = create_statement_list_node($1, NULL); }
+    | statement_list statement { $$ = append_to_statement_list($1, $2); }
+    ;
+
+optional_statements:
+    /* empty */ { $$ = NULL; }
+    | statement_list { $$ = $1; }
     ;
 
 statement:
-      assignment_statement { $$ = $1; }
-    | if_statement         { $$ = $1; }
-    | expression           { $$ = $1; } // Permitir expresiones como sentencias
-    ;
-
-assignment_statement:
-    TOKEN_IDENTIFIER TOKEN_ASSIGN expression {
-        // $$ = create_assignment_node($1, $3); // A implementar
-    }
+    TOKEN_IDENTIFIER TOKEN_ASSIGN expression { $$ = create_assign_node($1, $3); }
+    | TOKEN_IDENTIFIER TOKEN_LPAREN argument_list TOKEN_RPAREN { $$ = create_procedure_call_node($1, $3); }
+    | if_statement
+    | loop_statement
     ;
 
 if_statement:
-    TOKEN_IF expression TOKEN_THEN statement_list TOKEN_ELSE statement_list TOKEN_END {
-        // $$ = create_if_node($2, $4, $6); // A implementar
-    }
+    TOKEN_IF expression TOKEN_THEN optional_statements TOKEN_ELSE optional_statements TOKEN_END { /* Ignorado por ahora */ }
+    ;
+
+loop_statement:
+    TOKEN_FROM statement TOKEN_UNTIL expression TOKEN_LOOP optional_statements TOKEN_END { /* Ignorado por ahora */ }
     ;
 
 expression:
-      term { $$ = $1; }
-    | expression TOKEN_PLUS term { $$ = create_binary_expr_node('+', $1, $3); }
-    | expression TOKEN_MINUS term { $$ = create_binary_expr_node('-', $1, $3); }
-    ;
-
-term:
-      factor { $$ = $1; }
-    | term TOKEN_MULT factor { $$ = create_binary_expr_node('*', $1, $3); }
-    | term TOKEN_DIV factor { $$ = create_binary_expr_node('/', $1, $3); }
-    ;
-
-factor:
-      TOKEN_NUMBER_INT { $$ = create_int_literal_node($1); }
+    TOKEN_NUMBER_INT { $$ = create_int_literal_node($1); }
     | TOKEN_NUMBER_REAL { $$ = create_real_literal_node($1); }
     | TOKEN_STRING { $$ = create_string_literal_node($1); }
-    | TOKEN_IDENTIFIER { /* $$ = create_var_ref_node($1); */ }
+    | TOKEN_IDENTIFIER { $$ = create_variable_node($1); }
+    | expression TOKEN_PLUS expression { $$ = create_binary_expr_node('+', $1, $3); }
+    | expression TOKEN_MINUS expression { $$ = create_binary_expr_node('-', $1, $3); }
+    | expression TOKEN_MULT expression { $$ = create_binary_expr_node('*', $1, $3); }
+    | expression TOKEN_DIV expression { $$ = create_binary_expr_node('/', $1, $3); }
     | TOKEN_LPAREN expression TOKEN_RPAREN { $$ = $2; }
+    ;
+
+argument_list:
+    /* empty */ { $$ = NULL; }
+    | expression { $$ = create_argument_list_node($1, NULL); }
+    | argument_list TOKEN_COMMA expression { $$ = create_argument_list_node($3, $1); }
     ;
 
 %%
 
-void yyerror(const char *s) {
+void yyerror(AstNode **root, const char *s) {
     fprintf(stderr, "Error de sintaxis en línea %d cerca de '%s': %s\n",
             yylineno, yytext, s);
-}
-
-int main(int argc, char **argv) {
-    if (argc > 1) {
-        yyin = fopen(argv[1], "r");
-        if (!yyin) {
-            perror(argv[1]);
-            return 1;
-        }
-    } else {
-        yyin = stdin;
-    }
-
-    yyparse();
-
-    if (root) {
-        printf("AST construido. Evaluando...\n");
-        RuntimeValue final_result = eval_ast(root);
-        print_value(final_result);
-        printf("\n");
-        free_ast(root);
-    }
-
-    return 0;
 }

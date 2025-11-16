@@ -28,8 +28,7 @@ ID       [a-zA-Z_][a-zA-Z0-9_]*
 "from"            { return TOKEN_FROM; }
 "until"           { return TOKEN_UNTIL; }
 "loop"            { return TOKEN_LOOP; }
-"local"           { /* A implementar, por ahora se ignora */ }
-"print"           { /* A implementar en el parser */ }
+"local"           { return TOKEN_LOCAL; }
 
 {DIGIT}+\.{DIGIT}+([eE][+-]?{DIGIT}+)? {
     yylval.real_val = atof(yytext);
@@ -65,6 +64,7 @@ ID       [a-zA-Z_][a-zA-Z0-9_]*
 ")"               { return TOKEN_RPAREN; }
 ";"               { return TOKEN_SEMI; }
 ":"               { return TOKEN_COLON; }
+","               { return TOKEN_COMMA; }
 
 .                 { fprintf(stderr, "Error léxico en línea %d: Caracter inesperado '%s'\n", yylineno, yytext); }
 
