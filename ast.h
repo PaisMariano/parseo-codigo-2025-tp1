@@ -12,9 +12,13 @@ typedef enum {
     NODE_TYPE_STATEMENT_LIST,
     NODE_TYPE_ASSIGN,
     NODE_TYPE_VARIABLE,
-    // --- NUEVOS TIPOS ---
     NODE_TYPE_IF,
-    NODE_TYPE_COMPARISON_EXPR
+    NODE_TYPE_COMPARISON_EXPR,
+    // --- NUEVOS TIPOS ---
+    NODE_TYPE_LOOP,
+    NODE_TYPE_ATTRIBUTE_ACCESS,
+    NODE_TYPE_METHOD_CALL,
+    NODE_TYPE_CREATE
 } NodeType;
 
 // Tipos de literales
@@ -48,7 +52,6 @@ typedef struct {
     struct AstNode *right;
 } BinaryExprNode;
 
-// --- NUEVA ESTRUCTURA ---
 // Nodo para expresiones de comparación (ej. a > b)
 typedef struct {
     AstNode base;
@@ -78,7 +81,6 @@ typedef struct StatementListNode {
     struct StatementListNode *next;
 } StatementListNode;
 
-// --- NUEVA ESTRUCTURA ---
 // Nodo para una sentencia if-then-else
 typedef struct {
     AstNode base;
@@ -100,6 +102,38 @@ typedef struct {
     char *name;
 } VariableNode;
 
+// --- NUEVAS ESTRUCTURAS ---
+
+// Nodo para un bucle from-until
+typedef struct {
+    AstNode base;
+    StatementListNode *initialization;
+    AstNode *condition;
+    StatementListNode *loop_body;
+} LoopNode;
+
+// Nodo para acceso a atributos (ej. c.value)
+typedef struct {
+    AstNode base;
+    char *object_name;
+    char *attribute_name;
+} AttributeAccessNode;
+
+// Nodo para llamada a método (ej. c.inc)
+typedef struct {
+    AstNode base;
+    char *object_name;
+    char *method_name;
+    ArgumentListNode *arguments;
+} MethodCallNode;
+
+// Nodo para 'create' (ej. create c)
+typedef struct {
+    AstNode base;
+    char *object_name;
+} CreateNode;
+
+
 // Funciones para crear nodos del AST
 AstNode* create_binary_expr_node(char op, AstNode* left, AstNode* right);
 AstNode* create_int_literal_node(int value);
@@ -111,10 +145,16 @@ StatementListNode* create_statement_list_node(AstNode* stmt, StatementListNode* 
 StatementListNode* append_to_statement_list(StatementListNode* list, AstNode* stmt);
 AstNode* create_assign_node(char* name, AstNode* expr);
 AstNode* create_variable_node(char* name);
-
-// --- NUEVAS DECLARACIONES DE FUNCIONES ---
 AstNode* create_if_node(AstNode* condition, StatementListNode* then_branch, StatementListNode* else_branch);
 AstNode* create_comparison_expr_node(int op, AstNode* left, AstNode* right);
+
+// --- NUEVAS DECLARACIONES DE FUNCIONES ---
+AstNode* create_loop_node(StatementListNode* init, AstNode* condition, StatementListNode* body);
+AstNode* create_attribute_access_node(char* obj_name, char* attr_name);
+AstNode* create_method_call_node(char* obj_name, char* method_name, ArgumentListNode* args);
+AstNode* create_create_node(char* obj_name);
+ArgumentListNode* reverse_argument_list(ArgumentListNode* list);
+
 
 void print_ast(AstNode *node, FILE *output);
 void free_ast(AstNode *node);

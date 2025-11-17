@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "ast.h"          // <-- Mover aquí para definir AstNode
+#include "ast.h"
 #include "parser.tab.h"
 
 extern YYSTYPE yylval;
@@ -29,6 +29,7 @@ ID       [a-zA-Z_][a-zA-Z0-9_]*
 "until"           { return TOKEN_UNTIL; }
 "loop"            { return TOKEN_LOOP; }
 "local"           { return TOKEN_LOCAL; }
+"create"          { return TOKEN_CREATE; }
 
 {DIGIT}+\.{DIGIT}+([eE][+-]?{DIGIT}+)? {
     yylval.real_val = atof(yytext);
@@ -56,6 +57,7 @@ ID       [a-zA-Z_][a-zA-Z0-9_]*
 "="               { return TOKEN_EQ; }
 "<"               { return TOKEN_LT; }
 ">"               { return TOKEN_GT; }
+"."               { return TOKEN_DOT; }
 "+"               { return TOKEN_PLUS; }
 "-"               { return TOKEN_MINUS; }
 "*"               { return TOKEN_MULT; }

@@ -1,4 +1,3 @@
-// Reemplaza el contenido de ast.c con esto:
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -90,16 +89,6 @@ AstNode* create_variable_node(char* name) {
     return (AstNode*)node;
 }
 
-// --- Implementaciones para imprimir y liberar el AST ---
-
-void print_ast(AstNode *node, FILE *output) {
-    // Implementación futura
-}
-
-void free_ast(AstNode *node) {
-    // Implementación futura
-}
-
 AstNode* create_if_node(AstNode* condition, StatementListNode* then_branch, StatementListNode* else_branch) {
     IfNode* node = malloc(sizeof(IfNode));
     node->base.type = NODE_TYPE_IF;
@@ -116,4 +105,61 @@ AstNode* create_comparison_expr_node(int op, AstNode* left, AstNode* right) {
     node->left = left;
     node->right = right;
     return (AstNode*)node;
+}
+
+// --- NUEVAS IMPLEMENTACIONES ---
+
+AstNode* create_loop_node(StatementListNode* init, AstNode* condition, StatementListNode* body) {
+    LoopNode* node = malloc(sizeof(LoopNode));
+    node->base.type = NODE_TYPE_LOOP;
+    node->initialization = init;
+    node->condition = condition;
+    node->loop_body = body;
+    return (AstNode*)node;
+}
+
+AstNode* create_attribute_access_node(char* obj_name, char* attr_name) {
+    AttributeAccessNode* node = malloc(sizeof(AttributeAccessNode));
+    node->base.type = NODE_TYPE_ATTRIBUTE_ACCESS;
+    node->object_name = obj_name;
+    node->attribute_name = attr_name;
+    return (AstNode*)node;
+}
+
+AstNode* create_method_call_node(char* obj_name, char* method_name, ArgumentListNode* args) {
+    MethodCallNode* node = malloc(sizeof(MethodCallNode));
+    node->base.type = NODE_TYPE_METHOD_CALL;
+    node->object_name = obj_name;
+    node->method_name = method_name;
+    node->arguments = args;
+    return (AstNode*)node;
+}
+
+AstNode* create_create_node(char* obj_name) {
+    CreateNode* node = malloc(sizeof(CreateNode));
+    node->base.type = NODE_TYPE_CREATE;
+    node->object_name = obj_name;
+    return (AstNode*)node;
+}
+
+ArgumentListNode* reverse_argument_list(ArgumentListNode* list) {
+    ArgumentListNode *prev = NULL, *current = list, *next = NULL;
+    while (current != NULL) {
+        next = current->next;
+        current->next = prev;
+        prev = current;
+        current = next;
+    }
+    return prev;
+}
+
+
+// --- Implementaciones para imprimir y liberar el AST ---
+
+void print_ast(AstNode *node, FILE *output) {
+    // Implementación futura
+}
+
+void free_ast(AstNode *node) {
+    // Implementación futura
 }
