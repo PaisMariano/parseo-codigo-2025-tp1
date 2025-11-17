@@ -92,10 +92,8 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
 
             if (bin_expr->op == '+') {
                 if (left_val.type == VAL_TYPE_STRING || right_val.type == VAL_TYPE_STRING) {
-                    char l_str[100], r_str[100];
-                    print_value(left_val); // Imprime a un buffer temporal
-                    sprintf(l_str, "%s", (left_val.type == VAL_TYPE_INT) ? (sprintf(l_str, "%d", left_val.as.int_val), l_str) : left_val.as.string_val);
-                    sprintf(r_str, "%s", (right_val.type == VAL_TYPE_INT) ? (sprintf(r_str, "%d", right_val.as.int_val), r_str) : right_val.as.string_val);
+                    char l_str[100] = {0};
+                    char r_str[100] = {0};
 
                     if (left_val.type == VAL_TYPE_INT) sprintf(l_str, "%d", left_val.as.int_val);
                     else if (left_val.type == VAL_TYPE_STRING) strcpy(l_str, left_val.as.string_val);
@@ -108,6 +106,7 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
                     strcat(concat_str, r_str);
                     result.type = VAL_TYPE_STRING;
                     result.as.string_val = concat_str;
+                    // Liberar strings originales si es necesario
                     break;
                 }
             }
@@ -150,7 +149,19 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         case NODE_TYPE_ASSIGN: {
             AssignNode *assign_node = (AssignNode*) node;
             RuntimeValue value_to_assign = eval_ast(assign_node->expression, table);
-            set_symbol(table, assign_node->name, value_to_assign);
+
+            if (assign_node->target->type == NODE_TYPE_VARIABLE) {
+                VariableNode *var_node = (VariableNode*) assign_node->target;
+                set_symbol(table, var_node->name, value_to_assign);
+            } else if (assign_node->target->type == NODE_TYPE_ATTRIBUTE_ACCESS) {
+                AttributeAccessNode *attr_node = (AttributeAccessNode*) assign_node->target;
+                RuntimeValue object_val = get_symbol(table, attr_node->object_name);
+                if (object_val.type == VAL_TYPE_OBJECT) {
+                    set_symbol(object_val.as.object_val, attr_node->attribute_name, value_to_assign);
+                } else {
+                    fprintf(stderr, "Error: '%s' no es un objeto.\n", attr_node->object_name);
+                }
+            }
             break;
         }
 
@@ -223,9 +234,6 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_ATTRIBUTE_ACCESS: {
-             // Este nodo solo debería aparecer dentro de una asignación o expresión.
-             // La lógica se manejará en el nodo padre (ej. ASSIGN).
-             // Aquí, simplemente lo evaluamos para obtener el valor.
             AttributeAccessNode *attr_node = (AttributeAccessNode*) node;
             RuntimeValue object_val = get_symbol(table, attr_node->object_name);
             if (object_val.type == VAL_TYPE_OBJECT) {

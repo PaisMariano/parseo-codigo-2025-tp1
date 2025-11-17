@@ -113,7 +113,7 @@ optional_statements:
     ;
 
 statement:
-    primary_expression TOKEN_ASSIGN expression { $$ = create_assign_node(((VariableNode*)$1)->name, $3); }
+    primary_expression TOKEN_ASSIGN expression { $$ = create_assign_node($1, $3); }
     | primary_expression { $$ = $1; }
     | if_statement { $$ = $1; }
     | loop_statement { $$ = $1; }

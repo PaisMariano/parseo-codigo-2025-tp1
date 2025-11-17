@@ -74,10 +74,10 @@ StatementListNode* create_statement_list_node(AstNode* stmt, StatementListNode* 
     return node;
 }
 
-AstNode* create_assign_node(char* name, AstNode* expr) {
+AstNode* create_assign_node(AstNode* target, AstNode* expr) {
     AssignNode* node = malloc(sizeof(AssignNode));
     node->base.type = NODE_TYPE_ASSIGN;
-    node->name = name;
+    node->target = target;
     node->expression = expr;
     return (AstNode*)node;
 }

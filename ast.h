@@ -89,10 +89,10 @@ typedef struct {
     StatementListNode *else_branch;
 } IfNode;
 
-// Nodo para una asignación (ej. x := 10)
+// Nodo para una asignación (ej. x := 10 o c.value := 10)
 typedef struct {
     AstNode base;
-    char *name;
+    AstNode *target; // Puede ser VariableNode o AttributeAccessNode
     AstNode *expression;
 } AssignNode;
 
@@ -143,7 +143,7 @@ AstNode* create_procedure_call_node(char* name, ArgumentListNode* args);
 ArgumentListNode* create_argument_list_node(AstNode* arg, ArgumentListNode* next);
 StatementListNode* create_statement_list_node(AstNode* stmt, StatementListNode* next);
 StatementListNode* append_to_statement_list(StatementListNode* list, AstNode* stmt);
-AstNode* create_assign_node(char* name, AstNode* expr);
+AstNode* create_assign_node(AstNode* target, AstNode* expr);
 AstNode* create_variable_node(char* name);
 AstNode* create_if_node(AstNode* condition, StatementListNode* then_branch, StatementListNode* else_branch);
 AstNode* create_comparison_expr_node(int op, AstNode* left, AstNode* right);
