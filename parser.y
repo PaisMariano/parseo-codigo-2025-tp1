@@ -20,6 +20,7 @@
     AstNode *node;
     struct ArgumentListNode *arg_list;
     struct StatementListNode *stmt_list;
+    struct DeclarationListNode *decl_list;
 }
 
 %token <string_val> TOKEN_IDENTIFIER TOKEN_STRING
@@ -43,6 +44,8 @@
 %type <node> primary_expression
 %type <stmt_list> statement_list optional_statements feature_list
 %type <arg_list> argument_list optional_argument_list
+%type <decl_list> local_clause declarations declaration_list identifier_list
+%type <node> type
 
 %parse-param { AstNode **root }
 
@@ -63,8 +66,7 @@ feature_list:
 
 feature_declaration:
     TOKEN_IDENTIFIER formal_args local_clause TOKEN_DO statement_list TOKEN_END {
-        /* Por ahora, el cuerpo de la función es la lista de sentencias */
-        $$ = (AstNode*)$5;
+        $$ = create_feature_body_node($3, $5);
     }
     ;
 
@@ -80,26 +82,26 @@ formal_arg_list:
     ;
 
 local_clause:
-    TOKEN_LOCAL declarations
-    | /* empty */
+    TOKEN_LOCAL declarations { $$ = $2; }
+    | /* empty */ { $$ = NULL; }
     ;
 
 declarations:
-    declaration_list
+    declaration_list { $$ = $1; }
     ;
 
 declaration_list:
-    identifier_list TOKEN_COLON type
-    | declaration_list TOKEN_SEMI identifier_list TOKEN_COLON type
+    identifier_list TOKEN_COLON type { $$ = $1; free($3); }
+    | declaration_list TOKEN_SEMI identifier_list TOKEN_COLON type { $$ = append_to_declaration_list($1, $3); free($5); }
     ;
 
 identifier_list:
-    TOKEN_IDENTIFIER { free($1); }
-    | identifier_list TOKEN_COMMA TOKEN_IDENTIFIER { free($3); }
+    TOKEN_IDENTIFIER { $$ = create_declaration_list_node($1, NULL); }
+    | identifier_list TOKEN_COMMA TOKEN_IDENTIFIER { $$ = create_declaration_list_node($3, $1); }
     ;
 
 type:
-    TOKEN_IDENTIFIER { free($1); }
+    TOKEN_IDENTIFIER { free($1); $$ = NULL; }
     ;
 
 statement_list:

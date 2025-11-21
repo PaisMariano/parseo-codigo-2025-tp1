@@ -153,6 +153,34 @@ ArgumentListNode* reverse_argument_list(ArgumentListNode* list) {
     return prev;
 }
 
+// --- IMPLEMENTACIONES PARA DECLARACIONES ---
+
+DeclarationListNode* create_declaration_list_node(char* name, DeclarationListNode* next) {
+    DeclarationListNode* node = malloc(sizeof(DeclarationListNode));
+    node->base.type = NODE_TYPE_DECLARATION_LIST;
+    node->variable_name = name;
+    node->next = next;
+    return node;
+}
+
+DeclarationListNode* append_to_declaration_list(DeclarationListNode* list, DeclarationListNode* new_decls) {
+    if (!list) return new_decls;
+    DeclarationListNode* current = list;
+    while (current->next) {
+        current = current->next;
+    }
+    current->next = new_decls;
+    return list;
+}
+
+AstNode* create_feature_body_node(DeclarationListNode* decls, StatementListNode* stmts) {
+    FeatureBodyNode* node = malloc(sizeof(FeatureBodyNode));
+    node->base.type = NODE_TYPE_FEATURE_BODY;
+    node->declarations = decls;
+    node->statements = stmts;
+    return (AstNode*)node;
+}
+
 
 // --- Implementaciones para imprimir y liberar el AST ---
 

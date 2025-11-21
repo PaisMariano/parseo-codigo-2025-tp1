@@ -10,9 +10,6 @@ TARGET=interpreter
 # Archivos fuente
 SOURCES=parser.tab.c lex.yy.c ast.c interpreter.c main.c
 
-# Archivos de prueba para el target 'test' original
-TESTS := $(basename $(wildcard tests/TP1/*.e))
-
 all: $(TARGET)
 
 # Regla para generar el parser y el lexer
@@ -31,7 +28,7 @@ else
 endif
 
 # Nuevo target para ejecutar una prueba específica del intérprete
-test-interpreter: $(TARGET)
+test: $(TARGET)
 		@echo "--- Running Interpreter Tests in tests/TP2 ---"
 		@for t in tests/TP2/*.e; do \
 			echo "Running test $$t..."; \
@@ -46,18 +43,5 @@ test-interpreter: $(TARGET)
 
 clean:
 	rm -f parser.tab.c parser.tab.h lex.yy.c $(TARGET)
-
-# El target 'test' original se mantiene por si es necesario
-test: $(TARGET)
-	@for t in $(TESTS); do \
-		echo "Running test $$t..."; \
-		./$(TARGET) < $$t.e > $$t.result; \
-		if diff -q $$t.result $$t.expected > /dev/null; then \
-			echo "  ✅ PASSED"; \
-			rm -f $$t.result; \
-		else \
-			echo "  ❌ FAILED (see $$t.result vs $$t.expected)"; \
-		fi \
-	done
 
 .PHONY: all clean test test-interpreter

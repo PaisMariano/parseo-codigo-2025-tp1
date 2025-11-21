@@ -26,11 +26,9 @@ void set_symbol(SymbolTable *table, const char *name, RuntimeValue value) {
         entry->value = value;
         return;
     }
-    if (table->count < MAX_SYMBOLS) {
-        table->entries[table->count].name = strdup(name);
-        table->entries[table->count].value = value;
-        table->count++;
-    }
+    // Modificación: Si el símbolo no se encuentra, es un error.
+    fprintf(stderr, "Error: Variable '%s' no ha sido declarada.\n", name);
+    exit(1); // Terminar la ejecución por error.
 }
 
 RuntimeValue get_symbol(SymbolTable *table, const char *name) {
@@ -38,11 +36,24 @@ RuntimeValue get_symbol(SymbolTable *table, const char *name) {
     if (entry) {
         return entry->value;
     }
-    RuntimeValue void_val = { .type = VAL_TYPE_VOID };
+    // Modificación: Error si la variable no está definida.
     fprintf(stderr, "Error: Variable '%s' no definida.\n", name);
-    // exit(1); // Terminar en caso de error grave
-    return void_val;
+    exit(1); // Terminar en caso de error grave
 }
+
+// Función para añadir un símbolo sin asignarle un valor (para declaraciones 'local')
+void declare_symbol(SymbolTable *table, const char *name) {
+    if (find_symbol_entry(table, name)) {
+        fprintf(stderr, "Error: Variable '%s' ya ha sido declarada.\n", name);
+        exit(1);
+    }
+    if (table->count < MAX_SYMBOLS) {
+        table->entries[table->count].name = strdup(name);
+        table->entries[table->count].value.type = VAL_TYPE_VOID; // Inicializar a void
+        table->count++;
+    }
+}
+
 
 void print_value(RuntimeValue value) {
     switch (value.type) {
@@ -160,6 +171,7 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
                     set_symbol(object_val.as.object_val, attr_node->attribute_name, value_to_assign);
                 } else {
                     fprintf(stderr, "Error: '%s' no es un objeto.\n", attr_node->object_name);
+                    exit(1);
                 }
             }
             break;
@@ -222,6 +234,12 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
 
         case NODE_TYPE_CREATE: {
             CreateNode *create_node = (CreateNode*) node;
+            // Para que 'create' funcione, necesitamos declarar la variable primero.
+            // Esto debería hacerse en una fase de análisis semántico o modificando el parser
+            // para que procese las declaraciones 'local'.
+            // Por ahora, usaremos una función 'declare_symbol' para simularlo.
+            declare_symbol(table, create_node->object_name);
+
             SymbolTable* new_object_table = malloc(sizeof(SymbolTable));
             init_symbol_table(new_object_table);
 
@@ -240,6 +258,7 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
                 result = get_symbol(object_val.as.object_val, attr_node->attribute_name);
             } else {
                  fprintf(stderr, "Error: '%s' no es un objeto.\n", attr_node->object_name);
+                 exit(1);
             }
             break;
         }
@@ -261,8 +280,20 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
             break;
         }
 
+        case NODE_TYPE_FEATURE_BODY: {
+            FeatureBodyNode *body_node = (FeatureBodyNode*) node;
+            DeclarationListNode *decls = body_node->declarations;
+            while (decls) {
+                declare_symbol(table, decls->variable_name);
+                decls = decls->next;
+            }
+            eval_ast((AstNode*)body_node->statements, table);
+            break;
+        }
+
         case NODE_TYPE_ARGUMENT_LIST:
-            // Este nodo se maneja dentro de PROCEDURE_CALL, no se evalúa directamente.
+        case NODE_TYPE_DECLARATION_LIST:
+            // Estos nodos se manejan dentro de otros nodos, no se evalúan directamente.
             break;
     }
     return result;

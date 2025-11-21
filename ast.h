@@ -18,7 +18,10 @@ typedef enum {
     NODE_TYPE_LOOP,
     NODE_TYPE_ATTRIBUTE_ACCESS,
     NODE_TYPE_METHOD_CALL,
-    NODE_TYPE_CREATE
+    NODE_TYPE_CREATE,
+    // --- TIPOS PARA DECLARACIONES ---
+    NODE_TYPE_DECLARATION_LIST,
+    NODE_TYPE_FEATURE_BODY
 } NodeType;
 
 // Tipos de literales
@@ -133,6 +136,22 @@ typedef struct {
     char *object_name;
 } CreateNode;
 
+// --- ESTRUCTURAS PARA DECLARACIONES ---
+
+// Nodo para una lista de declaraciones de variables
+typedef struct DeclarationListNode {
+    AstNode base;
+    char *variable_name;
+    struct DeclarationListNode *next;
+} DeclarationListNode;
+
+// Nodo que combina declaraciones y sentencias
+typedef struct {
+    AstNode base;
+    DeclarationListNode *declarations;
+    StatementListNode *statements;
+} FeatureBodyNode;
+
 
 // Funciones para crear nodos del AST
 AstNode* create_binary_expr_node(char op, AstNode* left, AstNode* right);
@@ -154,6 +173,11 @@ AstNode* create_attribute_access_node(char* obj_name, char* attr_name);
 AstNode* create_method_call_node(char* obj_name, char* method_name, ArgumentListNode* args);
 AstNode* create_create_node(char* obj_name);
 ArgumentListNode* reverse_argument_list(ArgumentListNode* list);
+
+// --- DECLARACIONES PARA DECLARACIONES ---
+DeclarationListNode* create_declaration_list_node(char* name, DeclarationListNode* next);
+DeclarationListNode* append_to_declaration_list(DeclarationListNode* list, DeclarationListNode* new_decls);
+AstNode* create_feature_body_node(DeclarationListNode* decls, StatementListNode* stmts);
 
 
 void print_ast(AstNode *node, FILE *output);
