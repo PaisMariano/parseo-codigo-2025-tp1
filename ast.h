@@ -14,12 +14,10 @@ typedef enum {
     NODE_TYPE_VARIABLE,
     NODE_TYPE_IF,
     NODE_TYPE_COMPARISON_EXPR,
-    // --- NUEVOS TIPOS ---
     NODE_TYPE_LOOP,
     NODE_TYPE_ATTRIBUTE_ACCESS,
     NODE_TYPE_METHOD_CALL,
     NODE_TYPE_CREATE,
-    // --- TIPOS PARA DECLARACIONES ---
     NODE_TYPE_DECLARATION_LIST,
     NODE_TYPE_FEATURE_BODY
 } NodeType;
@@ -58,7 +56,7 @@ typedef struct {
 // Nodo para expresiones de comparación (ej. a > b)
 typedef struct {
     AstNode base;
-    int op; // Usamos int para tokens como TOKEN_GT, etc.
+    int op;
     struct AstNode *left;
     struct AstNode *right;
 } ComparisonExprNode;
@@ -104,8 +102,6 @@ typedef struct {
     AstNode base;
     char *name;
 } VariableNode;
-
-// --- NUEVAS ESTRUCTURAS ---
 
 // Nodo para un bucle from-until
 typedef struct {
@@ -174,7 +170,6 @@ AstNode* create_method_call_node(char* obj_name, char* method_name, ArgumentList
 AstNode* create_create_node(char* obj_name);
 ArgumentListNode* reverse_argument_list(ArgumentListNode* list);
 
-// --- DECLARACIONES PARA DECLARACIONES ---
 DeclarationListNode* create_declaration_list_node(char* name, DeclarationListNode* next);
 DeclarationListNode* append_to_declaration_list(DeclarationListNode* list, DeclarationListNode* new_decls);
 AstNode* create_feature_body_node(DeclarationListNode* decls, StatementListNode* stmts);

@@ -5,7 +5,6 @@
 
 #define MAX_SYMBOLS 100
 
-// Forward declaration
 struct SymbolTable;
 
 // Tipos de valores en tiempo de ejecución

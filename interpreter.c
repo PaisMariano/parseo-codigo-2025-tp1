@@ -22,11 +22,9 @@ SymbolTableEntry* find_symbol_entry(SymbolTable *table, const char *name) {
 void set_symbol(SymbolTable *table, const char *name, RuntimeValue value) {
     SymbolTableEntry* entry = find_symbol_entry(table, name);
     if (entry) {
-        // TODO: Liberar memoria del valor anterior si es necesario (ej. string)
         entry->value = value;
         return;
     }
-    // Modificación: Si el símbolo no se encuentra, es un error.
     fprintf(stderr, "Error: Variable '%s' no ha sido declarada.\n", name);
     exit(1); // Terminar la ejecución por error.
 }
@@ -36,7 +34,6 @@ RuntimeValue get_symbol(SymbolTable *table, const char *name) {
     if (entry) {
         return entry->value;
     }
-    // Modificación: Error si la variable no está definida.
     fprintf(stderr, "Error: Variable '%s' no definida.\n", name);
     exit(1); // Terminar en caso de error grave
 }
@@ -49,7 +46,7 @@ void declare_symbol(SymbolTable *table, const char *name) {
     }
     if (table->count < MAX_SYMBOLS) {
         table->entries[table->count].name = strdup(name);
-        table->entries[table->count].value.type = VAL_TYPE_VOID; // Inicializar a void
+        table->entries[table->count].value.type = VAL_TYPE_VOID;
         table->count++;
     }
 }
@@ -67,7 +64,6 @@ void print_value(RuntimeValue value) {
             printf("%s", value.as.string_val);
             break;
         case VAL_TYPE_VOID:
-            // No imprimir nada para void
             break;
         case VAL_TYPE_OBJECT:
             printf("[Object]");
@@ -117,7 +113,6 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
                     strcat(concat_str, r_str);
                     result.type = VAL_TYPE_STRING;
                     result.as.string_val = concat_str;
-                    // Liberar strings originales si es necesario
                     break;
                 }
             }
@@ -215,7 +210,6 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
             break;
         }
 
-        // --- NUEVOS CASES ---
         case NODE_TYPE_LOOP: {
             LoopNode *loop_node = (LoopNode*) node;
             // Ejecutar la inicialización del bucle
@@ -226,7 +220,6 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
                 if (cond_val.as.int_val != 0) { // La condición de 'until' es verdadera, salir
                     break;
                 }
-                // Ejecutar el cuerpo del bucle
                 eval_ast((AstNode*)loop_node->loop_body, table);
             }
             break;
@@ -234,10 +227,6 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
 
         case NODE_TYPE_CREATE: {
             CreateNode *create_node = (CreateNode*) node;
-            // Para que 'create' funcione, necesitamos declarar la variable primero.
-            // Esto debería hacerse en una fase de análisis semántico o modificando el parser
-            // para que procese las declaraciones 'local'.
-            // Por ahora, usaremos una función 'declare_symbol' para simularlo.
             declare_symbol(table, create_node->object_name);
 
             SymbolTable* new_object_table = malloc(sizeof(SymbolTable));
@@ -276,7 +265,6 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
                     }
                 }
             }
-            // Aquí iría la lógica para otras llamadas a métodos
             break;
         }
 
