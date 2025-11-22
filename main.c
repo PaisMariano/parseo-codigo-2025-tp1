@@ -1,11 +1,14 @@
 #include <stdio.h>
-#include "interpreter.h"
+#include <stdlib.h>
+#include <string.h>
 #include "ast.h"
+#include "interpreter.h"
 
-// Declaraciones externas para funciones y variables de Flex/Bison
 extern FILE *yyin;
 extern int yyparse(AstNode **root);
-extern void yyerror(AstNode **root, const char *s);
+
+FeatureBodyNode* find_feature(StatementListNode* feature_list, const char* feature_name);
+void register_classes_from_ast(AstNode* node);
 
 int main(int argc, char **argv) {
     if (argc > 1) {
@@ -14,25 +17,72 @@ int main(int argc, char **argv) {
             perror(argv[1]);
             return 1;
         }
-    } else {
-        // Leer desde la entrada estándar si no se proporciona un archivo
-        yyin = stdin;
     }
 
     AstNode *root = NULL;
-    int parse_result = yyparse(&root);
-
-    if (parse_result == 0 && root != NULL) {
-        // Inicializar y usar la tabla de símbolos
-        SymbolTable table;
-        init_symbol_table(&table);
-        eval_ast(root, &table); // Pasar la tabla a la evaluación
-        free_ast(root);
+    if (yyparse(&root) != 0) {
+        fprintf(stderr, "Error de parseo.\n");
+        return 1;
     }
 
-    if (yyin && yyin != stdin) {
+    if (root == NULL) {
+        return 0; // Archivo vacío, no es un error.
+    }
+
+    // Fase 1: Registrar todas las clases del AST
+    register_classes_from_ast(root);
+
+    SymbolTable global_scope;
+    init_symbol_table(&global_scope);
+
+    // Fase 2: Intentar ejecutar MAIN.make
+    ClassDefinition* main_class = find_class("MAIN");
+    FeatureBodyNode* make_method = NULL;
+    if (main_class) {
+        make_method = find_feature(main_class->feature_list, "make");
+    }
+
+    if (main_class && make_method) {
+        // Si existe MAIN y make, lo ejecutamos
+        eval_ast((AstNode*)make_method, &global_scope);
+    } else {
+        // Si no, ejecutamos el AST desde la raíz (para tests antiguos)
+        eval_ast(root, &global_scope);
+    }
+
+    free_ast(root);
+    if (argc > 1) {
         fclose(yyin);
     }
 
-    return parse_result;
+    return 0;
+}
+
+void register_classes_from_ast(AstNode* node) {
+    if (!node || node->type != NODE_TYPE_STATEMENT_LIST) {
+        return;
+    }
+    StatementListNode* list = (StatementListNode*)node;
+    while (list) {
+        if (list->statement && list->statement->type == NODE_TYPE_CLASS_DECL) {
+            ClassNode* class_node = (ClassNode*)list->statement;
+            register_class(class_node->name, class_node->features);
+        }
+        list = list->next;
+    }
+}
+
+FeatureBodyNode* find_feature(StatementListNode* feature_list, const char* feature_name) {
+    StatementListNode* current = feature_list;
+    while (current) {
+        AstNode* stmt = current->statement;
+        if (stmt && stmt->type == NODE_TYPE_FEATURE_BODY) {
+            FeatureBodyNode* f_node = (FeatureBodyNode*)stmt;
+            if (f_node->feature_name && strcmp(f_node->feature_name, feature_name) == 0) {
+                return f_node;
+            }
+        }
+        current = current->next;
+    }
+    return NULL;
 }

@@ -5,9 +5,15 @@
 #include "ast.h"
 #include "parser.tab.h"
 
+// --- Tabla Global de Clases ---
+ClassDefinition class_table[MAX_CLASSES];
+int class_count = 0;
+
 // --- Funciones para la Tabla de Símbolos ---
 void init_symbol_table(SymbolTable *table) {
     table->count = 0;
+    table->parent = NULL;
+    table->owner_class_name = NULL;
 }
 
 SymbolTableEntry* find_symbol_entry(SymbolTable *table, const char *name) {
@@ -22,11 +28,33 @@ SymbolTableEntry* find_symbol_entry(SymbolTable *table, const char *name) {
 void set_symbol(SymbolTable *table, const char *name, RuntimeValue value) {
     SymbolTableEntry* entry = find_symbol_entry(table, name);
     if (entry) {
+        char* old_string_ptr = NULL;
+        // Guardar el puntero del string antiguo si existe
+        if (entry->value.type == VAL_TYPE_STRING && entry->value.as.string_val) {
+            old_string_ptr = entry->value.as.string_val;
+        }
+
+        // Actualizar el valor en la tabla de símbolos
         entry->value = value;
-        return;
+
+        // Si había un string antiguo, y es diferente del nuevo, liberarlo.
+        if (old_string_ptr) {
+            char* new_string_ptr = (value.type == VAL_TYPE_STRING) ? value.as.string_val : NULL;
+            if (old_string_ptr != new_string_ptr) {
+                free(old_string_ptr);
+            }
+        }
+    } else {
+        if (table->count < MAX_SYMBOLS) {
+            table->entries[table->count].name = strdup(name);
+            table->entries[table->count].value = value;
+            table->entries[table->count].type_name = NULL;
+            table->count++;
+        } else {
+            fprintf(stderr, "Error: Tabla de símbolos llena.\n");
+            exit(1);
+        }
     }
-    fprintf(stderr, "Error: Variable '%s' no ha sido declarada.\n", name);
-    exit(1); // Terminar la ejecución por error.
 }
 
 RuntimeValue get_symbol(SymbolTable *table, const char *name) {
@@ -34,21 +62,50 @@ RuntimeValue get_symbol(SymbolTable *table, const char *name) {
     if (entry) {
         return entry->value;
     }
+    if (table->parent) {
+        return get_symbol(table->parent, name);
+    }
+
     fprintf(stderr, "Error: Variable '%s' no definida.\n", name);
-    exit(1); // Terminar en caso de error grave
+    exit(1);
 }
 
-// Función para añadir un símbolo sin asignarle un valor (para declaraciones 'local')
-void declare_symbol(SymbolTable *table, const char *name) {
-    if (find_symbol_entry(table, name)) {
-        fprintf(stderr, "Error: Variable '%s' ya ha sido declarada.\n", name);
-        exit(1);
+void declare_symbol(SymbolTable *table, const char *name, const char *type_name) {
+    SymbolTableEntry* existing = find_symbol_entry(table, name);
+    if (existing) {
+        // Si ya existe, no re-declarar; pero si no tiene type_name y se provee, asignarlo.
+        if (!existing->type_name && type_name) existing->type_name = strdup(type_name);
+        return;
     }
     if (table->count < MAX_SYMBOLS) {
+        RuntimeValue null_val = { .type = VAL_TYPE_NULL };
         table->entries[table->count].name = strdup(name);
-        table->entries[table->count].value.type = VAL_TYPE_VOID;
+        table->entries[table->count].value = null_val;
+        table->entries[table->count].type_name = type_name ? strdup(type_name) : NULL;
         table->count++;
     }
+}
+
+// --- Funciones de Gestión de Clases ---
+void register_class(const char* name, StatementListNode* features) {
+    if (find_class(name) != NULL) return;
+    if (class_count < MAX_CLASSES) {
+        class_table[class_count].name = strdup(name);
+        class_table[class_count].feature_list = features;
+        class_count++;
+    } else {
+        fprintf(stderr, "Error: Demasiadas clases definidas.\n");
+        exit(1);
+    }
+}
+
+ClassDefinition* find_class(const char* name) {
+    for (int i = 0; i < class_count; i++) {
+        if (strcmp(class_table[i].name, name) == 0) {
+            return &class_table[i];
+        }
+    }
+    return NULL;
 }
 
 
@@ -63,10 +120,11 @@ void print_value(RuntimeValue value) {
         case VAL_TYPE_STRING:
             printf("%s", value.as.string_val);
             break;
-        case VAL_TYPE_VOID:
-            break;
         case VAL_TYPE_OBJECT:
-            printf("[Object]");
+            printf("[Object of class %s]", value.as.object_val->owner_class_name ? value.as.object_val->owner_class_name : "Unknown");
+            break;
+        case VAL_TYPE_VOID:
+        case VAL_TYPE_NULL:
             break;
     }
 }
@@ -78,65 +136,56 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
 
     switch (node->type) {
         case NODE_TYPE_LITERAL: {
-            LiteralNode *lit_node = (LiteralNode*) node;
-            if (lit_node->literal_type == LITERAL_TYPE_INT) {
-                result.type = VAL_TYPE_INT;
-                result.as.int_val = lit_node->value.int_val;
-            } else if (lit_node->literal_type == LITERAL_TYPE_REAL) {
-                result.type = VAL_TYPE_REAL;
-                result.as.real_val = lit_node->value.real_val;
-            } else if (lit_node->literal_type == LITERAL_TYPE_STRING) {
-                result.type = VAL_TYPE_STRING;
-                result.as.string_val = lit_node->value.string_val;
+            LiteralNode *n = (LiteralNode*)node;
+            switch (n->literal_type) {
+                case LITERAL_TYPE_INT:    result.type = VAL_TYPE_INT; result.as.int_val = n->value.int_val; break;
+                case LITERAL_TYPE_REAL:   result.type = VAL_TYPE_REAL; result.as.real_val = n->value.real_val; break;
+                case LITERAL_TYPE_STRING: result.type = VAL_TYPE_STRING; result.as.string_val = strdup(n->value.string_val); break;
             }
             break;
         }
 
         case NODE_TYPE_BINARY_EXPR: {
-            BinaryExprNode *bin_expr = (BinaryExprNode*) node;
-            RuntimeValue left_val = eval_ast(bin_expr->left, table);
-            RuntimeValue right_val = eval_ast(bin_expr->right, table);
+            BinaryExprNode *n = (BinaryExprNode*)node;
+            RuntimeValue left = eval_ast(n->left, table);
+            RuntimeValue right = eval_ast(n->right, table);
 
-            if (bin_expr->op == '+') {
-                if (left_val.type == VAL_TYPE_STRING || right_val.type == VAL_TYPE_STRING) {
-                    char l_str[100] = {0};
-                    char r_str[100] = {0};
-
-                    if (left_val.type == VAL_TYPE_INT) sprintf(l_str, "%d", left_val.as.int_val);
-                    else if (left_val.type == VAL_TYPE_STRING) strcpy(l_str, left_val.as.string_val);
-
-                    if (right_val.type == VAL_TYPE_INT) sprintf(r_str, "%d", right_val.as.int_val);
-                    else if (right_val.type == VAL_TYPE_STRING) strcpy(r_str, right_val.as.string_val);
-
-                    char* concat_str = malloc(strlen(l_str) + strlen(r_str) + 1);
-                    strcpy(concat_str, l_str);
-                    strcat(concat_str, r_str);
-                    result.type = VAL_TYPE_STRING;
-                    result.as.string_val = concat_str;
-                    break;
-                }
-            }
-
-            if (left_val.type == VAL_TYPE_INT && right_val.type == VAL_TYPE_INT) {
+            // Lógica para enteros
+            if (left.type == VAL_TYPE_INT && right.type == VAL_TYPE_INT) {
                 result.type = VAL_TYPE_INT;
-                switch (bin_expr->op) {
-                    case '+': result.as.int_val = left_val.as.int_val + right_val.as.int_val; break;
-                    case '-': result.as.int_val = left_val.as.int_val - right_val.as.int_val; break;
-                    case '*': result.as.int_val = left_val.as.int_val * right_val.as.int_val; break;
-                    case '/': result.as.int_val = left_val.as.int_val / right_val.as.int_val; break;
+                switch (n->op) {
+                    case '+': result.as.int_val = left.as.int_val + right.as.int_val; break;
+                    case '-': result.as.int_val = left.as.int_val - right.as.int_val; break;
+                    case '*': result.as.int_val = left.as.int_val * right.as.int_val; break;
+                    case '/': result.as.int_val = left.as.int_val / right.as.int_val; break;
                 }
             }
+            // SOLUCIÓN: Añadir lógica para concatenación de strings
+            else if (left.type == VAL_TYPE_STRING && right.type == VAL_TYPE_STRING && n->op == '+') {
+                result.type = VAL_TYPE_STRING;
+                size_t len1 = strlen(left.as.string_val);
+                size_t len2 = strlen(right.as.string_val);
+                char* new_str = malloc(len1 + len2 + 1);
+                memcpy(new_str, left.as.string_val, len1);
+                memcpy(new_str + len1, right.as.string_val, len2 + 1); // Copia el terminador nulo también
+                result.as.string_val = new_str;
+            }
+
+            // Liberar memoria de operandos si eran strings temporales
+            if (left.type == VAL_TYPE_STRING) free(left.as.string_val);
+            if (right.type == VAL_TYPE_STRING) free(right.as.string_val);
+
             break;
         }
 
         case NODE_TYPE_PROCEDURE_CALL: {
-            ProcedureCallNode *proc_node = (ProcedureCallNode*) node;
-            if (strcmp(proc_node->name, "print") == 0) {
-                ArgumentListNode *arg_list = proc_node->arguments;
-                while (arg_list != NULL) {
-                    RuntimeValue arg_val = eval_ast(arg_list->argument, table);
-                    print_value(arg_val);
-                    arg_list = arg_list->next;
+            ProcedureCallNode *n = (ProcedureCallNode*)node;
+            if (strcmp(n->name, "print") == 0) {
+                ArgumentListNode *arg = n->arguments;
+                while (arg) {
+                    RuntimeValue val = eval_ast(arg->argument, table);
+                    print_value(val);
+                    arg = arg->next;
                 }
                 printf("\n");
             }
@@ -144,126 +193,206 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_STATEMENT_LIST: {
-            StatementListNode *list_node = (StatementListNode*) node;
-            while (list_node != NULL) {
-                eval_ast(list_node->statement, table);
-                list_node = list_node->next;
+            StatementListNode *list = (StatementListNode*)node;
+            while (list) {
+                eval_ast(list->statement, table);
+                list = list->next;
             }
             break;
         }
 
         case NODE_TYPE_ASSIGN: {
-            AssignNode *assign_node = (AssignNode*) node;
-            RuntimeValue value_to_assign = eval_ast(assign_node->expression, table);
+            AssignNode *n = (AssignNode*)node;
+            RuntimeValue value_to_assign = eval_ast(n->expression, table);
 
-            if (assign_node->target->type == NODE_TYPE_VARIABLE) {
-                VariableNode *var_node = (VariableNode*) assign_node->target;
+            if (n->target->type == NODE_TYPE_VARIABLE) {
+                VariableNode *var_node = (VariableNode*)n->target;
                 set_symbol(table, var_node->name, value_to_assign);
-            } else if (assign_node->target->type == NODE_TYPE_ATTRIBUTE_ACCESS) {
-                AttributeAccessNode *attr_node = (AttributeAccessNode*) assign_node->target;
-                RuntimeValue object_val = get_symbol(table, attr_node->object_name);
+            } else if (n->target->type == NODE_TYPE_ATTRIBUTE_ACCESS) {
+                AttributeAccessNode *attr_node = (AttributeAccessNode*)n->target;
+                RuntimeValue object_val = eval_ast(attr_node->object_node, table);
                 if (object_val.type == VAL_TYPE_OBJECT) {
                     set_symbol(object_val.as.object_val, attr_node->attribute_name, value_to_assign);
-                } else {
-                    fprintf(stderr, "Error: '%s' no es un objeto.\n", attr_node->object_name);
-                    exit(1);
                 }
             }
+
+            // El valor temporal de la expresión ya fue consumido por set_symbol o liberado en su
+            // respectivo case (ej. BINARY_EXPR). No se debe liberar aquí.
+            // if (value_to_assign.type == VAL_TYPE_STRING) {
+            //     free(value_to_assign.as.string_val);
+            // }
             break;
         }
 
         case NODE_TYPE_VARIABLE: {
-            VariableNode *var_node = (VariableNode*) node;
-            result = get_symbol(table, var_node->name);
+            VariableNode *n = (VariableNode*)node;
+            result = get_symbol(table, n->name);
+            // Si el valor es un string, duplicarlo para que el que llama sea dueño de la memoria.
+            if (result.type == VAL_TYPE_STRING) {
+                result.as.string_val = strdup(result.as.string_val);
+            }
             break;
         }
 
         case NODE_TYPE_COMPARISON_EXPR: {
-            ComparisonExprNode *comp_node = (ComparisonExprNode*) node;
-            RuntimeValue left_val = eval_ast(comp_node->left, table);
-            RuntimeValue right_val = eval_ast(comp_node->right, table);
-
-            result.type = VAL_TYPE_INT; // 1 para verdadero, 0 para falso
-            int l = left_val.as.int_val;
-            int r = right_val.as.int_val;
-
-            switch (comp_node->op) {
-                case TOKEN_GT: result.as.int_val = l > r; break;
+            ComparisonExprNode *n = (ComparisonExprNode*)node;
+            RuntimeValue left = eval_ast(n->left, table);
+            RuntimeValue right = eval_ast(n->right, table);
+            result.type = VAL_TYPE_INT;
+            int l = left.as.int_val, r = right.as.int_val;
+            switch(n->op) {
                 case TOKEN_LT: result.as.int_val = l < r; break;
-                case TOKEN_GE: result.as.int_val = l >= r; break;
                 case TOKEN_LE: result.as.int_val = l <= r; break;
+                case TOKEN_GT: result.as.int_val = l > r; break;
+                case TOKEN_GE: result.as.int_val = l >= r; break;
                 case TOKEN_EQ: result.as.int_val = l == r; break;
-                default: result.as.int_val = 0; break;
             }
             break;
         }
 
         case NODE_TYPE_IF: {
-            IfNode *if_node = (IfNode*) node;
-            RuntimeValue condition_val = eval_ast(if_node->condition, table);
-            if (condition_val.as.int_val != 0) {
-                eval_ast((AstNode*)if_node->then_branch, table);
+            IfNode *n = (IfNode*)node;
+            RuntimeValue cond = eval_ast(n->condition, table);
+            if (cond.as.int_val != 0) {
+                eval_ast((AstNode*)n->then_branch, table);
             } else {
-                if (if_node->else_branch)
-                    eval_ast((AstNode*)if_node->else_branch, table);
+                eval_ast((AstNode*)n->else_branch, table);
             }
             break;
         }
 
         case NODE_TYPE_LOOP: {
-            LoopNode *loop_node = (LoopNode*) node;
-            // Ejecutar la inicialización del bucle
-            eval_ast((AstNode*)loop_node->initialization, table);
-            // Bucle
-            while (1) {
-                RuntimeValue cond_val = eval_ast(loop_node->condition, table);
-                if (cond_val.as.int_val != 0) { // La condición de 'until' es verdadera, salir
-                    break;
-                }
-                eval_ast((AstNode*)loop_node->loop_body, table);
+            LoopNode *n = (LoopNode*)node;
+            eval_ast((AstNode*)n->initialization, table);
+            while(eval_ast(n->condition, table).as.int_val == 0) {
+                eval_ast((AstNode*)n->loop_body, table);
             }
             break;
         }
 
         case NODE_TYPE_CREATE: {
-            CreateNode *create_node = (CreateNode*) node;
-            declare_symbol(table, create_node->object_name);
+            CreateNode *n = (CreateNode*)node;
+            SymbolTableEntry* var_entry = find_symbol_entry(table, n->object_name);
+            if (var_entry && var_entry->value.type == VAL_TYPE_NULL) {
+                SymbolTable* new_object_table = malloc(sizeof(SymbolTable));
+                init_symbol_table(new_object_table);
 
-            SymbolTable* new_object_table = malloc(sizeof(SymbolTable));
-            init_symbol_table(new_object_table);
+                // Determinar la clase a instanciar: si la variable tiene type_name en la tabla de símbolos la usamos
+                const char* class_name_to_find = NULL;
+                if (var_entry->type_name) {
+                    class_name_to_find = var_entry->type_name;
+                } else {
+                    // Por compatibilidad, intentar COUNTER por defecto (antiguo comportamiento)
+                    class_name_to_find = "COUNTER";
+                }
 
-            RuntimeValue obj_val;
-            obj_val.type = VAL_TYPE_OBJECT;
-            obj_val.as.object_val = new_object_table;
+                ClassDefinition* class_def = find_class(class_name_to_find);
+                if (class_def) {
+                    new_object_table->owner_class_name = strdup(class_def->name);
+                    StatementListNode* feature = class_def->feature_list;
+                    while(feature) {
+                        if (feature->statement->type == NODE_TYPE_DECLARATION_LIST) {
+                            DeclarationListNode* decl = (DeclarationListNode*)feature->statement;
+                            while(decl) {
+                                // Registrar atributo en la tabla del objeto con su tipo
+                                declare_symbol(new_object_table, decl->variable_name, decl->type_name);
+                                // Inicialización por defecto según tipo conocido
+                                RuntimeValue init_val;
+                                if (decl->type_name && strcmp(decl->type_name, "INTEGER") == 0) {
+                                    init_val.type = VAL_TYPE_INT;
+                                    init_val.as.int_val = 0;
+                                    set_symbol(new_object_table, decl->variable_name, init_val);
+                                } else if (decl->type_name && strcmp(decl->type_name, "REAL") == 0) {
+                                    init_val.type = VAL_TYPE_REAL;
+                                    init_val.as.real_val = 0.0;
+                                    set_symbol(new_object_table, decl->variable_name, init_val);
+                                } else if (decl->type_name && strcmp(decl->type_name, "STRING") == 0) {
+                                    init_val.type = VAL_TYPE_STRING;
+                                    init_val.as.string_val = strdup("");
+                                    set_symbol(new_object_table, decl->variable_name, init_val);
+                                } else {
+                                    // Por defecto: dejar VAL_TYPE_NULL (referencias a objetos)
+                                    // ya fue declarado como NULL por declare_symbol
+                                }
+                                decl = decl->next;
+                            }
+                        }
+                        feature = feature->next;
+                    }
+                }
 
-            set_symbol(table, create_node->object_name, obj_val);
+                RuntimeValue obj_val;
+                obj_val.type = VAL_TYPE_OBJECT;
+                obj_val.as.object_val = new_object_table;
+                set_symbol(table, n->object_name, obj_val);
+            }
             break;
         }
 
         case NODE_TYPE_ATTRIBUTE_ACCESS: {
-            AttributeAccessNode *attr_node = (AttributeAccessNode*) node;
-            RuntimeValue object_val = get_symbol(table, attr_node->object_name);
+            AttributeAccessNode *n = (AttributeAccessNode*)node;
+            RuntimeValue object_val = eval_ast(n->object_node, table);
             if (object_val.type == VAL_TYPE_OBJECT) {
-                result = get_symbol(object_val.as.object_val, attr_node->attribute_name);
-            } else {
-                 fprintf(stderr, "Error: '%s' no es un objeto.\n", attr_node->object_name);
-                 exit(1);
+                SymbolTable* obj_table = object_val.as.object_val;
+                ClassDefinition* class_def = find_class(obj_table->owner_class_name);
+
+                // Buscar si es un método
+                FeatureBodyNode* method_node = NULL;
+                if (class_def) {
+                    StatementListNode* feature = class_def->feature_list;
+                    while(feature) {
+                        if (feature->statement->type == NODE_TYPE_FEATURE_BODY) {
+                            FeatureBodyNode* f_node = (FeatureBodyNode*)feature->statement;
+                            if (f_node->feature_name && strcmp(f_node->feature_name, n->attribute_name) == 0) {
+                                method_node = f_node;
+                                break;
+                            }
+                        }
+                        feature = feature->next;
+                    }
+                }
+
+                if (method_node) { // Es una llamada a método sin argumentos
+                    SymbolTable method_scope;
+                    init_symbol_table(&method_scope);
+                    method_scope.parent = obj_table;
+                    eval_ast((AstNode*)method_node, &method_scope);
+                    // Los métodos sin 'Result' devuelven void.
+                    result.type = VAL_TYPE_VOID;
+                } else { // Es un acceso a atributo
+                    result = get_symbol(obj_table, n->attribute_name);
+                }
             }
             break;
         }
 
         case NODE_TYPE_METHOD_CALL: {
-            MethodCallNode *method_node = (MethodCallNode*) node;
-            if (strcmp(method_node->method_name, "inc") == 0) {
-                RuntimeValue counter_obj_val = get_symbol(table, method_node->object_name);
-                if (counter_obj_val.type == VAL_TYPE_OBJECT) {
-                    SymbolTable* obj_table = counter_obj_val.as.object_val;
-                    RuntimeValue current_val = get_symbol(obj_table, "value");
-                    if (current_val.type == VAL_TYPE_INT) {
-                        current_val.as.int_val++;
-                        set_symbol(obj_table, "value", current_val);
+            MethodCallNode *n = (MethodCallNode*)node;
+            RuntimeValue object_val = eval_ast(n->object_node, table);
+            if (object_val.type != VAL_TYPE_OBJECT) break;
+
+            SymbolTable* obj_table = object_val.as.object_val;
+            ClassDefinition* class_def = find_class(obj_table->owner_class_name);
+            if (!class_def) break;
+
+            StatementListNode* feature = class_def->feature_list;
+            FeatureBodyNode* method_node = NULL;
+            while(feature) {
+                if (feature->statement->type == NODE_TYPE_FEATURE_BODY) {
+                    FeatureBodyNode* f_node = (FeatureBodyNode*)feature->statement;
+                    if (f_node->feature_name && strcmp(f_node->feature_name, n->method_name) == 0) {
+                        method_node = f_node;
+                        break;
                     }
                 }
+                feature = feature->next;
+            }
+
+            if (method_node) {
+                SymbolTable method_scope;
+                init_symbol_table(&method_scope);
+                method_scope.parent = obj_table;
+                eval_ast((AstNode*)method_node, &method_scope);
             }
             break;
         }
@@ -272,16 +401,20 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
             FeatureBodyNode *body_node = (FeatureBodyNode*) node;
             DeclarationListNode *decls = body_node->declarations;
             while (decls) {
-                declare_symbol(table, decls->variable_name);
+                // Ahora pasamos el type_name al declarar variables locales / parámetros
+                declare_symbol(table, decls->variable_name, decls->type_name);
                 decls = decls->next;
             }
             eval_ast((AstNode*)body_node->statements, table);
             break;
         }
 
-        case NODE_TYPE_ARGUMENT_LIST:
+        case NODE_TYPE_CLASS_DECL:
+            // Las clases se registran en main, no se evalúan directamente.
+            break;
+
         case NODE_TYPE_DECLARATION_LIST:
-            // Estos nodos se manejan dentro de otros nodos, no se evalúan directamente.
+        case NODE_TYPE_ARGUMENT_LIST:
             break;
     }
     return result;

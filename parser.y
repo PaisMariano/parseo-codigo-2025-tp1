@@ -23,6 +23,8 @@
     struct DeclarationListNode *decl_list;
 }
 
+%type <string_val> type
+
 %token <string_val> TOKEN_IDENTIFIER TOKEN_STRING
 %token <int_val> TOKEN_NUMBER_INT
 %token <real_val> TOKEN_NUMBER_REAL
@@ -37,26 +39,34 @@
 %nonassoc TOKEN_LT TOKEN_GT TOKEN_LE TOKEN_GE TOKEN_EQ
 %left TOKEN_PLUS TOKEN_MINUS
 %left TOKEN_MULT TOKEN_DIV
-%right TOKEN_DOT
+%left TOKEN_DOT
 
 %type <node> program class_declaration expression statement
-%type <node> if_statement loop_statement feature_declaration create_statement
+%type <node> if_statement loop_statement create_statement
 %type <node> primary_expression
-%type <stmt_list> statement_list optional_statements feature_list
+%type <stmt_list> statement_list optional_statements feature_list class_list
 %type <arg_list> argument_list optional_argument_list
 %type <decl_list> local_clause declarations declaration_list identifier_list
-%type <node> type
+%type <node> feature_declaration
 
 %parse-param { AstNode **root }
 
 %%
 
 program:
-    class_declaration { *root = $1; }
+    class_list { *root = (AstNode*)$1; }
+    | optional_statements { *root = (AstNode*)$1; } /* Para tests sin clases */
+    ;
+
+class_list:
+    class_declaration { $$ = create_statement_list_node($1, NULL); }
+    | class_list class_declaration { $$ = append_to_statement_list($1, $2); }
     ;
 
 class_declaration:
-    TOKEN_CLASS TOKEN_IDENTIFIER TOKEN_FEATURE feature_list TOKEN_END { $$ = (AstNode*)$4; }
+    TOKEN_CLASS TOKEN_IDENTIFIER TOKEN_FEATURE feature_list TOKEN_END {
+        $$ = create_class_node($2, $4);
+    }
     ;
 
 feature_list:
@@ -67,12 +77,19 @@ feature_list:
 feature_declaration:
     TOKEN_IDENTIFIER formal_args local_clause TOKEN_DO statement_list TOKEN_END {
         $$ = create_feature_body_node($3, $5);
+        ((FeatureBodyNode*)$$)->feature_name = $1;
+    }
+    | identifier_list TOKEN_COLON type {
+        // Asigna el tipo a cada identificador en la lista
+        set_declaration_type($1, $3);
+        $$ = (AstNode*)$1;
+        free($3);
     }
     ;
 
 formal_args:
-    TOKEN_LPAREN formal_arg_list TOKEN_RPAREN
-    | /* empty */
+    /* empty */
+    | TOKEN_LPAREN formal_arg_list TOKEN_RPAREN
     ;
 
 formal_arg_list:
@@ -91,8 +108,8 @@ declarations:
     ;
 
 declaration_list:
-    identifier_list TOKEN_COLON type { $$ = $1; free($3); }
-    | declaration_list TOKEN_SEMI identifier_list TOKEN_COLON type { $$ = append_to_declaration_list($1, $3); free($5); }
+    identifier_list TOKEN_COLON type { $$ = $1; set_declaration_type($$, $3); free($3); }
+    | declaration_list TOKEN_SEMI identifier_list TOKEN_COLON type { $$ = append_to_declaration_list($1, $3); set_declaration_type($$, $5); free($5); }
     ;
 
 identifier_list:
@@ -101,7 +118,7 @@ identifier_list:
     ;
 
 type:
-    TOKEN_IDENTIFIER { free($1); $$ = NULL; }
+    TOKEN_IDENTIFIER { $$ = $1; }
     ;
 
 statement_list:
@@ -158,8 +175,8 @@ primary_expression:
     | TOKEN_IDENTIFIER { $$ = create_variable_node($1); }
     | TOKEN_LPAREN expression TOKEN_RPAREN { $$ = $2; }
     | TOKEN_IDENTIFIER TOKEN_LPAREN optional_argument_list TOKEN_RPAREN { $$ = create_procedure_call_node($1, $3); }
-    | primary_expression TOKEN_DOT TOKEN_IDENTIFIER { $$ = create_attribute_access_node(((VariableNode*)$1)->name, $3); }
-    | primary_expression TOKEN_DOT TOKEN_IDENTIFIER TOKEN_LPAREN optional_argument_list TOKEN_RPAREN { $$ = create_method_call_node(((VariableNode*)$1)->name, $3, $5); }
+    | primary_expression TOKEN_DOT TOKEN_IDENTIFIER { $$ = create_attribute_access_node($1, $3); }
+    | primary_expression TOKEN_DOT TOKEN_IDENTIFIER TOKEN_LPAREN optional_argument_list TOKEN_RPAREN { $$ = create_method_call_node($1, $3, $5); }
     ;
 
 optional_argument_list:

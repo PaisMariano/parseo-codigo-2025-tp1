@@ -19,7 +19,8 @@ typedef enum {
     NODE_TYPE_METHOD_CALL,
     NODE_TYPE_CREATE,
     NODE_TYPE_DECLARATION_LIST,
-    NODE_TYPE_FEATURE_BODY
+    NODE_TYPE_FEATURE_BODY,
+    NODE_TYPE_CLASS_DECL // Nuevo tipo para una declaración de clase
 } NodeType;
 
 // Tipos de literales
@@ -114,14 +115,14 @@ typedef struct {
 // Nodo para acceso a atributos (ej. c.value)
 typedef struct {
     AstNode base;
-    char *object_name;
+    AstNode *object_node;
     char *attribute_name;
 } AttributeAccessNode;
 
 // Nodo para llamada a método (ej. c.inc)
 typedef struct {
     AstNode base;
-    char *object_name;
+    AstNode *object_node;
     char *method_name;
     ArgumentListNode *arguments;
 } MethodCallNode;
@@ -130,6 +131,7 @@ typedef struct {
 typedef struct {
     AstNode base;
     char *object_name;
+    char *class_name; // Añadido para saber qué clase instanciar
 } CreateNode;
 
 // --- ESTRUCTURAS PARA DECLARACIONES ---
@@ -138,15 +140,24 @@ typedef struct {
 typedef struct DeclarationListNode {
     AstNode base;
     char *variable_name;
+    char *type_name; // NUEVO: nombre del tipo (por ejemplo "INTEGER" o nombre de clase)
     struct DeclarationListNode *next;
 } DeclarationListNode;
 
 // Nodo que combina declaraciones y sentencias
 typedef struct {
     AstNode base;
+    char *feature_name; // Nombre del método/feature
     DeclarationListNode *declarations;
     StatementListNode *statements;
 } FeatureBodyNode;
+
+// Nodo para una declaración de clase completa
+typedef struct {
+    AstNode base;
+    char *name;
+    StatementListNode *features;
+} ClassNode;
 
 
 // Funciones para crear nodos del AST
@@ -162,18 +173,18 @@ AstNode* create_assign_node(AstNode* target, AstNode* expr);
 AstNode* create_variable_node(char* name);
 AstNode* create_if_node(AstNode* condition, StatementListNode* then_branch, StatementListNode* else_branch);
 AstNode* create_comparison_expr_node(int op, AstNode* left, AstNode* right);
-
-// --- NUEVAS DECLARACIONES DE FUNCIONES ---
 AstNode* create_loop_node(StatementListNode* init, AstNode* condition, StatementListNode* body);
-AstNode* create_attribute_access_node(char* obj_name, char* attr_name);
-AstNode* create_method_call_node(char* obj_name, char* method_name, ArgumentListNode* args);
 AstNode* create_create_node(char* obj_name);
 ArgumentListNode* reverse_argument_list(ArgumentListNode* list);
 
+AstNode* create_attribute_access_node(AstNode* obj_node, char* attr_name);
+AstNode* create_method_call_node(AstNode* obj_node, char* method_name, ArgumentListNode* args);
+
 DeclarationListNode* create_declaration_list_node(char* name, DeclarationListNode* next);
 DeclarationListNode* append_to_declaration_list(DeclarationListNode* list, DeclarationListNode* new_decls);
+void set_declaration_type(DeclarationListNode* list, char* type_name); // NUEVO
 AstNode* create_feature_body_node(DeclarationListNode* decls, StatementListNode* stmts);
-
+AstNode* create_class_node(char* name, StatementListNode* features); // Nuevo prototipo
 
 void print_ast(AstNode *node, FILE *output);
 void free_ast(AstNode *node);
