@@ -207,6 +207,170 @@ static void print_indent(FILE *output, int indent) {
     for (int i = 0; i < indent; ++i) fputc(' ', output);
 }
 
+static void print_ast_internal(AstNode *node, FILE *output, int indent);
+
+void print_ast(AstNode *node, FILE *output) {
+    if (!output) return;
+    print_ast_internal(node, output, 0);
+}
+
+static void print_ast_internal(AstNode *node, FILE *output, int indent) {
+    if (!node) {
+        print_indent(output, indent);
+        fprintf(output, "(null)\n");
+        return;
+    }
+
+    print_indent(output, indent);
+
+    switch (node->type) {
+        case NODE_TYPE_LITERAL: {
+            LiteralNode *n = (LiteralNode*)node;
+            fprintf(output, "Literal: ");
+            switch (n->literal_type) {
+                case LITERAL_TYPE_INT: fprintf(output, "%d (int)\n", n->value.int_val); break;
+                case LITERAL_TYPE_REAL: fprintf(output, "%f (real)\n", n->value.real_val); break;
+                case LITERAL_TYPE_STRING: fprintf(output, "\"%s\" (string)\n", n->value.string_val); break;
+            }
+            break;
+        }
+        case NODE_TYPE_BINARY_EXPR: {
+            BinaryExprNode *n = (BinaryExprNode*)node;
+            fprintf(output, "BinaryExpr: %c\n", n->op);
+            print_ast_internal(n->left, output, indent + 2);
+            print_ast_internal(n->right, output, indent + 2);
+            break;
+        }
+        case NODE_TYPE_COMPARISON_EXPR: {
+            ComparisonExprNode *n = (ComparisonExprNode*)node;
+            fprintf(output, "ComparisonExpr: %d\n", n->op);
+            print_ast_internal(n->left, output, indent + 2);
+            print_ast_internal(n->right, output, indent + 2);
+            break;
+        }
+        case NODE_TYPE_PROCEDURE_CALL: {
+            ProcedureCallNode *n = (ProcedureCallNode*)node;
+            fprintf(output, "ProcedureCall: %s\n", n->name);
+            print_ast_internal((AstNode*)n->arguments, output, indent + 2);
+            break;
+        }
+        case NODE_TYPE_METHOD_CALL: {
+            MethodCallNode *n = (MethodCallNode*)node;
+            fprintf(output, "MethodCall: %s\n", n->method_name);
+            print_indent(output, indent + 2);
+            fprintf(output, "Object:\n");
+            print_ast_internal(n->object_node, output, indent + 4);
+            print_indent(output, indent + 2);
+            fprintf(output, "Arguments:\n");
+            print_ast_internal((AstNode*)n->arguments, output, indent + 4);
+            break;
+        }
+        case NODE_TYPE_ARGUMENT_LIST: {
+            ArgumentListNode *list = (ArgumentListNode*)node;
+            fprintf(output, "ArgumentList\n");
+            while (list) {
+                print_ast_internal(list->argument, output, indent + 2);
+                list = list->next;
+            }
+            break;
+        }
+        case NODE_TYPE_STATEMENT_LIST: {
+            StatementListNode *list = (StatementListNode*)node;
+            fprintf(output, "StatementList\n");
+            while (list) {
+                print_ast_internal(list->statement, output, indent + 2);
+                list = list->next;
+            }
+            break;
+        }
+        case NODE_TYPE_ASSIGN: {
+            AssignNode *n = (AssignNode*)node;
+            fprintf(output, "Assign\n");
+            print_indent(output, indent + 2);
+            fprintf(output, "Target:\n");
+            print_ast_internal(n->target, output, indent + 4);
+            print_indent(output, indent + 2);
+            fprintf(output, "Expression:\n");
+            print_ast_internal(n->expression, output, indent + 4);
+            break;
+        }
+        case NODE_TYPE_VARIABLE: {
+            VariableNode *n = (VariableNode*)node;
+            fprintf(output, "Variable: %s\n", n->name);
+            break;
+        }
+        case NODE_TYPE_IF: {
+            IfNode *n = (IfNode*)node;
+            fprintf(output, "If\n");
+            print_indent(output, indent + 2);
+            fprintf(output, "Condition:\n");
+            print_ast_internal(n->condition, output, indent + 4);
+            print_indent(output, indent + 2);
+            fprintf(output, "Then:\n");
+            print_ast_internal((AstNode*)n->then_branch, output, indent + 4);
+            print_indent(output, indent + 2);
+            fprintf(output, "Else:\n");
+            print_ast_internal((AstNode*)n->else_branch, output, indent + 4);
+            break;
+        }
+        case NODE_TYPE_LOOP: {
+            LoopNode *n = (LoopNode*)node;
+            fprintf(output, "Loop\n");
+            print_indent(output, indent + 2);
+            fprintf(output, "Initialization:\n");
+            print_ast_internal((AstNode*)n->initialization, output, indent + 4);
+            print_indent(output, indent + 2);
+            fprintf(output, "Condition:\n");
+            print_ast_internal(n->condition, output, indent + 4);
+            print_indent(output, indent + 2);
+            fprintf(output, "Body:\n");
+            print_ast_internal((AstNode*)n->loop_body, output, indent + 4);
+            break;
+        }
+        case NODE_TYPE_ATTRIBUTE_ACCESS: {
+            AttributeAccessNode *n = (AttributeAccessNode*)node;
+            fprintf(output, "AttributeAccess: %s\n", n->attribute_name);
+            print_ast_internal(n->object_node, output, indent + 2);
+            break;
+        }
+        case NODE_TYPE_CREATE: {
+            CreateNode *n = (CreateNode*)node;
+            fprintf(output, "Create: %s\n", n->object_name);
+            break;
+        }
+        case NODE_TYPE_DECLARATION_LIST: {
+            DeclarationListNode *list = (DeclarationListNode*)node;
+            fprintf(output, "DeclarationList\n");
+            while(list) {
+                print_indent(output, indent + 2);
+                fprintf(output, "Var: %s, Type: %s\n", list->variable_name, list->type_name ? list->type_name : "(none)");
+                list = list->next;
+            }
+            break;
+        }
+        case NODE_TYPE_FEATURE_BODY: {
+            FeatureBodyNode *n = (FeatureBodyNode*)node;
+            fprintf(output, "FeatureBody: %s\n", n->feature_name);
+            print_indent(output, indent + 2);
+            fprintf(output, "Declarations:\n");
+            print_ast_internal((AstNode*)n->declarations, output, indent + 4);
+            print_indent(output, indent + 2);
+            fprintf(output, "Statements:\n");
+            print_ast_internal((AstNode*)n->statements, output, indent + 4);
+            break;
+        }
+        case NODE_TYPE_CLASS_DECL: {
+            ClassNode *n = (ClassNode*)node;
+            fprintf(output, "Class: %s\n", n->name);
+            print_ast_internal((AstNode*)n->features, output, indent + 2);
+            break;
+        }
+        default:
+            fprintf(output, "Unknown node type: %d\n", node->type);
+            break;
+    }
+}
+
 static void free_ast_internal(AstNode *node);
 
 static void free_statement_list(StatementListNode* list) {

@@ -32,7 +32,7 @@ test: $(TARGET)
 		@echo "--- Running Interpreter Tests in tests/TP2 ---"
 		@for t in tests/TP2/*.e; do \
 			echo "Running test $$t..."; \
-			./$(TARGET) < $$t > $$t.result; \
+			./$(TARGET) $$t > $$t.result; \
 			if diff -q $$t.result $$t.expected > /dev/null; then \
 				echo "  ✅ PASSED"; \
 				rm -f $$t.result; \
@@ -42,6 +42,6 @@ test: $(TARGET)
 		done
 
 clean:
-	rm -f parser.tab.c parser.tab.h lex.yy.c $(TARGET)
+	rm -f parser.tab.c parser.tab.h lex.yy.c $(TARGET) tests/TP2/*.result tests/TP2/*.info
 
 .PHONY: all clean test test-interpreter
