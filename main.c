@@ -70,6 +70,9 @@ int main(int argc, char **argv) {
         eval_ast(root, &global_scope);
     }
 
+    // Escribir el estado final de la tabla de símbolos en el archivo .info
+    print_symbol_table(&global_scope, info_file);
+
     free_ast(root);
     if (argc > 1) {
         fclose(yyin);

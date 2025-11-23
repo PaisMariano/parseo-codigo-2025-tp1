@@ -69,6 +69,9 @@ ClassDefinition* find_class(const char* name);
 // Función para imprimir valores
 void print_value(RuntimeValue value);
 
+// Nueva función para imprimir la tabla de símbolos
+void print_symbol_table(SymbolTable *table, FILE *output);
+
 // Función principal de evaluación del AST
 RuntimeValue eval_ast(AstNode *node, SymbolTable *table);
 

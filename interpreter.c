@@ -58,6 +58,20 @@ void set_symbol(SymbolTable *table, const char *name, RuntimeValue value) {
 }
 
 RuntimeValue get_symbol(SymbolTable *table, const char *name) {
+    // Caso especial para 'Current'
+    if (strcmp(name, "Current") == 0) {
+        SymbolTable* current_table = table;
+        while(current_table && !current_table->owner_class_name) {
+            current_table = current_table->parent;
+        }
+        if (current_table) {
+            RuntimeValue obj_val;
+            obj_val.type = VAL_TYPE_OBJECT;
+            obj_val.as.object_val = current_table;
+            return obj_val;
+        }
+    }
+
     SymbolTableEntry* entry = find_symbol_entry(table, name);
     if (entry) {
         return entry->value;
@@ -128,6 +142,70 @@ void print_value(RuntimeValue value) {
             break;
     }
 }
+
+// --- Nuevas funciones para imprimir la tabla de símbolos ---
+
+// Imprime un valor en un stream específico (para depuración)
+static void fprint_value(FILE* stream, RuntimeValue value) {
+    switch (value.type) {
+        case VAL_TYPE_INT:
+            fprintf(stream, "%d", value.as.int_val);
+            break;
+        case VAL_TYPE_REAL:
+            fprintf(stream, "%f", value.as.real_val);
+            break;
+        case VAL_TYPE_STRING:
+            fprintf(stream, "\"%s\"", value.as.string_val);
+            break;
+        case VAL_TYPE_OBJECT:
+            if (value.as.object_val) {
+                fprintf(stream, "[Object of class %s at %p]", value.as.object_val->owner_class_name ? value.as.object_val->owner_class_name : "Unknown", (void*)value.as.object_val);
+            } else {
+                fprintf(stream, "[Object NULL]");
+            }
+            break;
+        case VAL_TYPE_NULL:
+            fprintf(stream, "NULL");
+            break;
+        case VAL_TYPE_VOID:
+            fprintf(stream, "VOID");
+            break;
+    }
+}
+
+static void print_symbol_table_internal(SymbolTable *table, FILE *output, int indent) {
+    if (!table) return;
+
+    char indent_str[indent + 1];
+    for(int i=0; i<indent; ++i) indent_str[i] = ' ';
+    indent_str[indent] = '\0';
+
+    fprintf(output, "%sSymbolTable at %p ", indent_str, (void*)table);
+    if (table->owner_class_name) {
+        fprintf(output, "(Class: %s)\n", table->owner_class_name);
+    } else {
+        fprintf(output, "(Scope)\n");
+    }
+
+    for (int i = 0; i < table->count; i++) {
+        SymbolTableEntry *entry = &table->entries[i];
+        fprintf(output, "%s  - %s (type: %s) = ", indent_str, entry->name, entry->type_name ? entry->type_name : "any");
+        fprint_value(output, entry->value);
+        fprintf(output, "\n");
+
+        // Si el valor es un objeto, imprimir su tabla de símbolos de forma recursiva
+        if (entry->value.type == VAL_TYPE_OBJECT && entry->value.as.object_val) {
+            print_symbol_table_internal(entry->value.as.object_val, output, indent + 4);
+        }
+    }
+}
+
+void print_symbol_table(SymbolTable *table, FILE *output) {
+    fprintf(output, "--- Symbol Table State ---\n");
+    print_symbol_table_internal(table, output, 0);
+    fprintf(output, "--------------------------\n");
+}
+
 
 // --- Función principal del Intérprete ---
 RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
