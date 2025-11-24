@@ -3,6 +3,7 @@
 #include <string.h>
 #include "ast.h"
 #include "interpreter.h"
+#include "token_utils.h"
 
 extern FILE *yyin;
 extern int yyparse(AstNode **root);
@@ -10,9 +11,9 @@ extern int yyparse(AstNode **root);
 FeatureBodyNode* find_feature(StatementListNode* feature_list, const char* feature_name);
 void register_classes_from_ast(AstNode* node);
 
-int main(int argc, char **argv) {
-    FILE *info_file = NULL;
+FILE *info_file_ptr = NULL;
 
+int main(int argc, char **argv) {
     if (argc > 1) {
         yyin = fopen(argv[1], "r");
         if (!yyin) {
@@ -23,29 +24,32 @@ int main(int argc, char **argv) {
         // Crear el archivo .info
         char info_filename[256];
         snprintf(info_filename, sizeof(info_filename), "%s.info", argv[1]);
-        info_file = fopen(info_filename, "w");
-        if (!info_file) {
+        info_file_ptr = fopen(info_filename, "w");
+        if (!info_file_ptr) {
             fprintf(stderr, "No se pudo crear el archivo de información %s.\n", info_filename);
-            info_file = stderr; // Usar stderr como fallback
+            info_file_ptr = stderr; // Usar stderr como fallback
         }
     } else {
-        info_file = stdout; // Si no hay archivo, usar stdout
+        info_file_ptr = stdout; // Si no hay archivo, usar stdout
     }
+
+    // Escribir la cabecera de tokens
+    fprintf(info_file_ptr, "--- TOKENS ---\n");
 
     AstNode *root = NULL;
     if (yyparse(&root) != 0) {
-        fprintf(info_file, "Error de parseo.\n");
-        if (info_file != stdout && info_file != stderr) fclose(info_file);
+        fprintf(info_file_ptr, "Error de parseo.\n");
+        if (info_file_ptr != stdout && info_file_ptr != stderr) fclose(info_file_ptr);
         return 1;
     }
 
     // Escribir el AST en el archivo .info
-    fprintf(info_file, "--- AST Tree ---\n");
-    print_ast(root, info_file);
-    fprintf(info_file, "----------------\n\n");
+    fprintf(info_file_ptr, "\n--- AST Tree ---\n");
+    print_ast(root, info_file_ptr);
+    fprintf(info_file_ptr, "----------------\n\n");
 
     if (root == NULL) {
-        if (info_file != stdout && info_file != stderr) fclose(info_file);
+        if (info_file_ptr != stdout && info_file_ptr != stderr) fclose(info_file_ptr);
         return 0; // Archivo vacío, no es un error.
     }
 
@@ -71,14 +75,14 @@ int main(int argc, char **argv) {
     }
 
     // Escribir el estado final de la tabla de símbolos en el archivo .info
-    print_symbol_table(&global_scope, info_file);
+    print_symbol_table(&global_scope, info_file_ptr);
 
     free_ast(root);
     if (argc > 1) {
         fclose(yyin);
     }
-    if (info_file != stdout && info_file != stderr) {
-        fclose(info_file);
+    if (info_file_ptr != stdout && info_file_ptr != stderr) {
+        fclose(info_file_ptr);
     }
 
     return 0;

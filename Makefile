@@ -8,7 +8,7 @@ UNAME_S := $(shell uname -s)
 TARGET=interpreter
 
 # Archivos fuente
-SOURCES=parser.tab.c lex.yy.c ast.c interpreter.c main.c
+SOURCES=parser.tab.c lex.yy.c ast.c interpreter.c main.c token_utils.c
 
 all: $(TARGET)
 
@@ -20,7 +20,7 @@ lex.yy.c: lexer.l parser.tab.h
 	$(FLEX) -o lex.yy.c lexer.l
 
 # Regla para compilar y enlazar el intérprete completo
-$(TARGET): parser.tab.c lex.yy.c ast.c interpreter.c main.c
+$(TARGET): parser.tab.c lex.yy.c ast.c interpreter.c main.c token_utils.c
 ifeq ($(UNAME_S),Darwin)
 	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES)
 else
