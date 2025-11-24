@@ -1,0 +1,91 @@
+--- TOKENS ---
+[Line 1] TOKEN_CLASS: "class"
+[Line 1] TOKEN_IDENTIFIER: "COUNTER"
+[Line 2] TOKEN_FEATURE: "feature"
+[Line 3] TOKEN_IDENTIFIER: "value"
+[Line 3] TOKEN_COLON: ":"
+[Line 3] TOKEN_IDENTIFIER: "INTEGER"
+[Line 5] TOKEN_IDENTIFIER: "inc"
+[Line 6] TOKEN_DO: "do"
+[Line 7] TOKEN_IDENTIFIER: "value"
+[Line 7] TOKEN_ASSIGN: ":="
+[Line 7] TOKEN_IDENTIFIER: "value"
+[Line 7] TOKEN_PLUS: "+"
+[Line 7] TOKEN_NUMBER_INT: 1
+[Line 8] TOKEN_END: "end"
+[Line 9] TOKEN_END: "end"
+[Line 11] TOKEN_CLASS: "class"
+[Line 11] TOKEN_IDENTIFIER: "MAIN"
+[Line 12] TOKEN_FEATURE: "feature"
+[Line 13] TOKEN_IDENTIFIER: "make"
+[Line 14] TOKEN_LOCAL: "local"
+[Line 15] TOKEN_IDENTIFIER: "c"
+[Line 15] TOKEN_COLON: ":"
+[Line 15] TOKEN_IDENTIFIER: "COUNTER"
+[Line 16] TOKEN_DO: "do"
+[Line 17] TOKEN_CREATE: "create"
+[Line 17] TOKEN_IDENTIFIER: "c"
+[Line 18] TOKEN_IDENTIFIER: "c"
+[Line 18] TOKEN_DOT: "."
+[Line 18] TOKEN_IDENTIFIER: "value"
+[Line 18] TOKEN_ASSIGN: ":="
+[Line 18] TOKEN_NUMBER_INT: 5
+[Line 19] TOKEN_IDENTIFIER: "c"
+[Line 19] TOKEN_DOT: "."
+[Line 19] TOKEN_IDENTIFIER: "inc"
+[Line 20] TOKEN_IDENTIFIER: "print"
+[Line 20] TOKEN_LPAREN: "("
+[Line 20] TOKEN_IDENTIFIER: "c"
+[Line 20] TOKEN_DOT: "."
+[Line 20] TOKEN_IDENTIFIER: "value"
+[Line 20] TOKEN_RPAREN: ")"
+[Line 21] TOKEN_END: "end"
+[Line 22] TOKEN_END: "end"
+
+--- AST Tree ---
+StatementList
+  Class: COUNTER
+    StatementList
+      DeclarationList
+        Var: value, Type: INTEGER
+      FeatureBody: inc
+        Declarations:
+          (null)
+        Statements:
+          StatementList
+            Assign
+              Target:
+                Variable: value
+              Expression:
+                BinaryExpr: +
+                  Variable: value
+                  Literal: 1 (int)
+  Class: MAIN
+    StatementList
+      FeatureBody: make
+        Declarations:
+          DeclarationList
+            Var: c, Type: COUNTER
+        Statements:
+          StatementList
+            Create: c
+            Assign
+              Target:
+                AttributeAccess: value
+                  Variable: c
+              Expression:
+                Literal: 5 (int)
+            AttributeAccess: inc
+              Variable: c
+            ProcedureCall: print
+              ArgumentList
+                AttributeAccess: value
+                  Variable: c
+----------------
+
+--- Symbol Table State ---
+SymbolTable at 0x16dd9e148 (Scope)
+  - c (type: COUNTER) = [Object of class COUNTER at 0x153008200]
+    SymbolTable at 0x153008200 (Class: COUNTER)
+      - value (type: INTEGER) = 5
+--------------------------

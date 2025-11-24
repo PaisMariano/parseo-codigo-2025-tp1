@@ -1,0 +1,49 @@
+--- TOKENS ---
+[Line 1] TOKEN_CLASS: "class"
+[Line 1] TOKEN_IDENTIFIER: "MAIN"
+[Line 2] TOKEN_FEATURE: "feature"
+[Line 3] TOKEN_IDENTIFIER: "make"
+[Line 4] TOKEN_DO: "do"
+[Line 5] TOKEN_IDENTIFIER: "print"
+[Line 5] TOKEN_LPAREN: "("
+[Line 5] TOKEN_STRING: "Hola "
+[Line 5] TOKEN_PLUS: "+"
+[Line 5] TOKEN_STRING: "mundo"
+[Line 5] TOKEN_RPAREN: ")"
+[Line 6] TOKEN_IDENTIFIER: "print"
+[Line 6] TOKEN_LPAREN: "("
+[Line 6] TOKEN_STRING: "número: "
+[Line 6] TOKEN_PLUS: "+"
+[Line 6] TOKEN_STRING: " "
+[Line 6] TOKEN_PLUS: "+"
+[Line 6] TOKEN_STRING: "42"
+[Line 6] TOKEN_RPAREN: ")"
+[Line 7] TOKEN_END: "end"
+[Line 8] TOKEN_END: "end"
+
+--- AST Tree ---
+StatementList
+  Class: MAIN
+    StatementList
+      FeatureBody: make
+        Declarations:
+          (null)
+        Statements:
+          StatementList
+            ProcedureCall: print
+              ArgumentList
+                BinaryExpr: +
+                  Literal: "Hola " (string)
+                  Literal: "mundo" (string)
+            ProcedureCall: print
+              ArgumentList
+                BinaryExpr: +
+                  BinaryExpr: +
+                    Literal: "número: " (string)
+                    Literal: " " (string)
+                  Literal: "42" (string)
+----------------
+
+--- Symbol Table State ---
+SymbolTable at 0x16dbea148 (Scope)
+--------------------------

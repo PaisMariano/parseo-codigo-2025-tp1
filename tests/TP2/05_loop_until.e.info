@@ -1,0 +1,72 @@
+--- TOKENS ---
+[Line 1] TOKEN_CLASS: "class"
+[Line 1] TOKEN_IDENTIFIER: "MAIN"
+[Line 2] TOKEN_FEATURE: "feature"
+[Line 3] TOKEN_IDENTIFIER: "make"
+[Line 4] TOKEN_LOCAL: "local"
+[Line 5] TOKEN_IDENTIFIER: "i"
+[Line 5] TOKEN_COLON: ":"
+[Line 5] TOKEN_IDENTIFIER: "INTEGER"
+[Line 6] TOKEN_DO: "do"
+[Line 7] TOKEN_FROM: "from"
+[Line 8] TOKEN_IDENTIFIER: "i"
+[Line 8] TOKEN_ASSIGN: ":="
+[Line 8] TOKEN_NUMBER_INT: 0
+[Line 9] TOKEN_UNTIL: "until"
+[Line 10] TOKEN_IDENTIFIER: "i"
+[Line 10] TOKEN_EQ: "="
+[Line 10] TOKEN_NUMBER_INT: 3
+[Line 11] TOKEN_LOOP: "loop"
+[Line 12] TOKEN_IDENTIFIER: "print"
+[Line 12] TOKEN_LPAREN: "("
+[Line 12] TOKEN_IDENTIFIER: "i"
+[Line 12] TOKEN_RPAREN: ")"
+[Line 13] TOKEN_IDENTIFIER: "i"
+[Line 13] TOKEN_ASSIGN: ":="
+[Line 13] TOKEN_IDENTIFIER: "i"
+[Line 13] TOKEN_PLUS: "+"
+[Line 13] TOKEN_NUMBER_INT: 1
+[Line 14] TOKEN_END: "end"
+[Line 15] TOKEN_END: "end"
+[Line 16] TOKEN_END: "end"
+
+--- AST Tree ---
+StatementList
+  Class: MAIN
+    StatementList
+      FeatureBody: make
+        Declarations:
+          DeclarationList
+            Var: i, Type: INTEGER
+        Statements:
+          StatementList
+            Loop
+              Initialization:
+                StatementList
+                  Assign
+                    Target:
+                      Variable: i
+                    Expression:
+                      Literal: 0 (int)
+              Condition:
+                ComparisonExpr: 277
+                  Variable: i
+                  Literal: 3 (int)
+              Body:
+                StatementList
+                  ProcedureCall: print
+                    ArgumentList
+                      Variable: i
+                  Assign
+                    Target:
+                      Variable: i
+                    Expression:
+                      BinaryExpr: +
+                        Variable: i
+                        Literal: 1 (int)
+----------------
+
+--- Symbol Table State ---
+SymbolTable at 0x16d986148 (Scope)
+  - i (type: INTEGER) = 3
+--------------------------

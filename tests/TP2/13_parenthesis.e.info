@@ -1,0 +1,72 @@
+--- TOKENS ---
+[Line 2] TOKEN_CLASS: "class"
+[Line 2] TOKEN_IDENTIFIER: "MAIN"
+[Line 3] TOKEN_FEATURE: "feature"
+[Line 4] TOKEN_IDENTIFIER: "make"
+[Line 5] TOKEN_DO: "do"
+[Line 7] TOKEN_IDENTIFIER: "print"
+[Line 7] TOKEN_LPAREN: "("
+[Line 7] TOKEN_NUMBER_INT: 2
+[Line 7] TOKEN_PLUS: "+"
+[Line 7] TOKEN_NUMBER_INT: 3
+[Line 7] TOKEN_MULT: "*"
+[Line 7] TOKEN_NUMBER_INT: 4
+[Line 7] TOKEN_RPAREN: ")"
+[Line 10] TOKEN_IDENTIFIER: "print"
+[Line 10] TOKEN_LPAREN: "("
+[Line 10] TOKEN_LPAREN: "("
+[Line 10] TOKEN_NUMBER_INT: 2
+[Line 10] TOKEN_PLUS: "+"
+[Line 10] TOKEN_NUMBER_INT: 3
+[Line 10] TOKEN_RPAREN: ")"
+[Line 10] TOKEN_MULT: "*"
+[Line 10] TOKEN_NUMBER_INT: 4
+[Line 10] TOKEN_RPAREN: ")"
+[Line 13] TOKEN_IDENTIFIER: "print"
+[Line 13] TOKEN_LPAREN: "("
+[Line 13] TOKEN_NUMBER_INT: 100
+[Line 13] TOKEN_DIV: "/"
+[Line 13] TOKEN_LPAREN: "("
+[Line 13] TOKEN_NUMBER_INT: 10
+[Line 13] TOKEN_DIV: "/"
+[Line 13] TOKEN_NUMBER_INT: 2
+[Line 13] TOKEN_RPAREN: ")"
+[Line 13] TOKEN_RPAREN: ")"
+[Line 14] TOKEN_END: "end"
+[Line 15] TOKEN_END: "end"
+
+--- AST Tree ---
+StatementList
+  Class: MAIN
+    StatementList
+      FeatureBody: make
+        Declarations:
+          (null)
+        Statements:
+          StatementList
+            ProcedureCall: print
+              ArgumentList
+                BinaryExpr: +
+                  Literal: 2 (int)
+                  BinaryExpr: *
+                    Literal: 3 (int)
+                    Literal: 4 (int)
+            ProcedureCall: print
+              ArgumentList
+                BinaryExpr: *
+                  BinaryExpr: +
+                    Literal: 2 (int)
+                    Literal: 3 (int)
+                  Literal: 4 (int)
+            ProcedureCall: print
+              ArgumentList
+                BinaryExpr: /
+                  Literal: 100 (int)
+                  BinaryExpr: /
+                    Literal: 10 (int)
+                    Literal: 2 (int)
+----------------
+
+--- Symbol Table State ---
+SymbolTable at 0x16dbbe148 (Scope)
+--------------------------

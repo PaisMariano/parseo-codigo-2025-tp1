@@ -1,0 +1,67 @@
+--- TOKENS ---
+[Line 1] TOKEN_CLASS: "class"
+[Line 1] TOKEN_IDENTIFIER: "MAIN"
+[Line 2] TOKEN_FEATURE: "feature"
+[Line 3] TOKEN_IDENTIFIER: "make"
+[Line 4] TOKEN_LOCAL: "local"
+[Line 5] TOKEN_IDENTIFIER: "x"
+[Line 5] TOKEN_COLON: ":"
+[Line 5] TOKEN_IDENTIFIER: "INTEGER"
+[Line 6] TOKEN_DO: "do"
+[Line 7] TOKEN_IDENTIFIER: "x"
+[Line 7] TOKEN_ASSIGN: ":="
+[Line 7] TOKEN_NUMBER_INT: 4
+[Line 8] TOKEN_IF: "if"
+[Line 8] TOKEN_IDENTIFIER: "x"
+[Line 8] TOKEN_GT: ">"
+[Line 8] TOKEN_NUMBER_INT: 0
+[Line 8] TOKEN_THEN: "then"
+[Line 9] TOKEN_IDENTIFIER: "print"
+[Line 9] TOKEN_LPAREN: "("
+[Line 9] TOKEN_STRING: "positivo"
+[Line 9] TOKEN_RPAREN: ")"
+[Line 10] TOKEN_ELSE: "else"
+[Line 11] TOKEN_IDENTIFIER: "print"
+[Line 11] TOKEN_LPAREN: "("
+[Line 11] TOKEN_STRING: "no positivo"
+[Line 11] TOKEN_RPAREN: ")"
+[Line 12] TOKEN_END: "end"
+[Line 13] TOKEN_END: "end"
+[Line 14] TOKEN_END: "end"
+
+--- AST Tree ---
+StatementList
+  Class: MAIN
+    StatementList
+      FeatureBody: make
+        Declarations:
+          DeclarationList
+            Var: x, Type: INTEGER
+        Statements:
+          StatementList
+            Assign
+              Target:
+                Variable: x
+              Expression:
+                Literal: 4 (int)
+            If
+              Condition:
+                ComparisonExpr: 279
+                  Variable: x
+                  Literal: 0 (int)
+              Then:
+                StatementList
+                  ProcedureCall: print
+                    ArgumentList
+                      Literal: "positivo" (string)
+              Else:
+                StatementList
+                  ProcedureCall: print
+                    ArgumentList
+                      Literal: "no positivo" (string)
+----------------
+
+--- Symbol Table State ---
+SymbolTable at 0x16d156148 (Scope)
+  - x (type: INTEGER) = 4
+--------------------------

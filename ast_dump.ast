@@ -1,0 +1,13 @@
+StatementList
+  Class: MAIN
+    StatementList
+      FeatureBody: make
+        Declarations:
+          (null)
+        Statements:
+          StatementList
+            Assign
+              Target:
+                Variable: x
+              Expression:
+                Literal: 5 (int)

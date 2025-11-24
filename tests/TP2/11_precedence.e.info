@@ -1,0 +1,38 @@
+--- TOKENS ---
+[Line 2] TOKEN_CLASS: "class"
+[Line 2] TOKEN_IDENTIFIER: "MAIN"
+[Line 3] TOKEN_FEATURE: "feature"
+[Line 4] TOKEN_IDENTIFIER: "make"
+[Line 5] TOKEN_DO: "do"
+[Line 6] TOKEN_IDENTIFIER: "print"
+[Line 6] TOKEN_LPAREN: "("
+[Line 6] TOKEN_NUMBER_INT: 2
+[Line 6] TOKEN_PLUS: "+"
+[Line 6] TOKEN_NUMBER_INT: 3
+[Line 6] TOKEN_MULT: "*"
+[Line 6] TOKEN_NUMBER_INT: 4
+[Line 6] TOKEN_RPAREN: ")"
+[Line 7] TOKEN_END: "end"
+[Line 8] TOKEN_END: "end"
+
+--- AST Tree ---
+StatementList
+  Class: MAIN
+    StatementList
+      FeatureBody: make
+        Declarations:
+          (null)
+        Statements:
+          StatementList
+            ProcedureCall: print
+              ArgumentList
+                BinaryExpr: +
+                  Literal: 2 (int)
+                  BinaryExpr: *
+                    Literal: 3 (int)
+                    Literal: 4 (int)
+----------------
+
+--- Symbol Table State ---
+SymbolTable at 0x16d502148 (Scope)
+--------------------------

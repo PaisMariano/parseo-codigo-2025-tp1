@@ -1,0 +1,140 @@
+--- TOKENS ---
+[Line 1] TOKEN_CLASS: "class"
+[Line 1] TOKEN_IDENTIFIER: "MAIN"
+[Line 2] TOKEN_FEATURE: "feature"
+[Line 3] TOKEN_IDENTIFIER: "make"
+[Line 4] TOKEN_LOCAL: "local"
+[Line 5] TOKEN_IDENTIFIER: "a"
+[Line 5] TOKEN_COMMA: ","
+[Line 5] TOKEN_IDENTIFIER: "b"
+[Line 5] TOKEN_COMMA: ","
+[Line 5] TOKEN_IDENTIFIER: "t"
+[Line 5] TOKEN_COMMA: ","
+[Line 5] TOKEN_IDENTIFIER: "i"
+[Line 5] TOKEN_COMMA: ","
+[Line 5] TOKEN_IDENTIFIER: "n"
+[Line 5] TOKEN_COLON: ":"
+[Line 5] TOKEN_IDENTIFIER: "INTEGER"
+[Line 6] TOKEN_DO: "do"
+[Line 7] TOKEN_IDENTIFIER: "n"
+[Line 7] TOKEN_ASSIGN: ":="
+[Line 7] TOKEN_NUMBER_INT: 6
+[Line 8] TOKEN_IDENTIFIER: "a"
+[Line 8] TOKEN_ASSIGN: ":="
+[Line 8] TOKEN_NUMBER_INT: 0
+[Line 9] TOKEN_IDENTIFIER: "b"
+[Line 9] TOKEN_ASSIGN: ":="
+[Line 9] TOKEN_NUMBER_INT: 1
+[Line 10] TOKEN_FROM: "from"
+[Line 11] TOKEN_IDENTIFIER: "i"
+[Line 11] TOKEN_ASSIGN: ":="
+[Line 11] TOKEN_NUMBER_INT: 0
+[Line 12] TOKEN_UNTIL: "until"
+[Line 13] TOKEN_IDENTIFIER: "i"
+[Line 13] TOKEN_EQ: "="
+[Line 13] TOKEN_IDENTIFIER: "n"
+[Line 14] TOKEN_LOOP: "loop"
+[Line 15] TOKEN_IDENTIFIER: "print"
+[Line 15] TOKEN_LPAREN: "("
+[Line 15] TOKEN_IDENTIFIER: "a"
+[Line 15] TOKEN_RPAREN: ")"
+[Line 16] TOKEN_IDENTIFIER: "t"
+[Line 16] TOKEN_ASSIGN: ":="
+[Line 16] TOKEN_IDENTIFIER: "a"
+[Line 16] TOKEN_PLUS: "+"
+[Line 16] TOKEN_IDENTIFIER: "b"
+[Line 17] TOKEN_IDENTIFIER: "a"
+[Line 17] TOKEN_ASSIGN: ":="
+[Line 17] TOKEN_IDENTIFIER: "b"
+[Line 18] TOKEN_IDENTIFIER: "b"
+[Line 18] TOKEN_ASSIGN: ":="
+[Line 18] TOKEN_IDENTIFIER: "t"
+[Line 19] TOKEN_IDENTIFIER: "i"
+[Line 19] TOKEN_ASSIGN: ":="
+[Line 19] TOKEN_IDENTIFIER: "i"
+[Line 19] TOKEN_PLUS: "+"
+[Line 19] TOKEN_NUMBER_INT: 1
+[Line 20] TOKEN_END: "end"
+[Line 21] TOKEN_END: "end"
+[Line 22] TOKEN_END: "end"
+
+--- AST Tree ---
+StatementList
+  Class: MAIN
+    StatementList
+      FeatureBody: make
+        Declarations:
+          DeclarationList
+            Var: n, Type: INTEGER
+            Var: i, Type: INTEGER
+            Var: t, Type: INTEGER
+            Var: b, Type: INTEGER
+            Var: a, Type: INTEGER
+        Statements:
+          StatementList
+            Assign
+              Target:
+                Variable: n
+              Expression:
+                Literal: 6 (int)
+            Assign
+              Target:
+                Variable: a
+              Expression:
+                Literal: 0 (int)
+            Assign
+              Target:
+                Variable: b
+              Expression:
+                Literal: 1 (int)
+            Loop
+              Initialization:
+                StatementList
+                  Assign
+                    Target:
+                      Variable: i
+                    Expression:
+                      Literal: 0 (int)
+              Condition:
+                ComparisonExpr: 277
+                  Variable: i
+                  Variable: n
+              Body:
+                StatementList
+                  ProcedureCall: print
+                    ArgumentList
+                      Variable: a
+                  Assign
+                    Target:
+                      Variable: t
+                    Expression:
+                      BinaryExpr: +
+                        Variable: a
+                        Variable: b
+                  Assign
+                    Target:
+                      Variable: a
+                    Expression:
+                      Variable: b
+                  Assign
+                    Target:
+                      Variable: b
+                    Expression:
+                      Variable: t
+                  Assign
+                    Target:
+                      Variable: i
+                    Expression:
+                      BinaryExpr: +
+                        Variable: i
+                        Literal: 1 (int)
+----------------
+
+--- Symbol Table State ---
+SymbolTable at 0x16f9f2148 (Scope)
+  - n (type: INTEGER) = 6
+  - i (type: INTEGER) = 6
+  - t (type: INTEGER) = 13
+  - b (type: INTEGER) = 13
+  - a (type: INTEGER) = 8
+--------------------------
