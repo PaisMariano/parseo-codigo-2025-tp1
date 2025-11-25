@@ -3,9 +3,16 @@
 #include <string.h>
 #include "ast.h"
 
-// --- Implementaciones de funciones para crear nodos ---
+/* Comentario general:
+   - Este archivo implementa "constructores" de nodos del AST, utilidades (append/reverse)
+     y funciones para imprimir y liberar el AST.
+   - Las funciones create_* devuelven punteros a nodos ya inicializados.
+*/
+
+/* --- Implementaciones de funciones para crear nodos --- */
 
 AstNode* create_int_literal_node(int value) {
+    /* Crea un nodo literal entero */
     LiteralNode* node = malloc(sizeof(LiteralNode));
     node->base.type = NODE_TYPE_LITERAL;
     node->literal_type = LITERAL_TYPE_INT;
@@ -14,6 +21,7 @@ AstNode* create_int_literal_node(int value) {
 }
 
 AstNode* create_real_literal_node(double value) {
+    /* Crea un nodo literal real */
     LiteralNode* node = malloc(sizeof(LiteralNode));
     node->base.type = NODE_TYPE_LITERAL;
     node->literal_type = LITERAL_TYPE_REAL;
@@ -22,6 +30,7 @@ AstNode* create_real_literal_node(double value) {
 }
 
 AstNode* create_string_literal_node(char* value) {
+    /* Crea un nodo literal de cadena */
     LiteralNode* node = malloc(sizeof(LiteralNode));
     node->base.type = NODE_TYPE_LITERAL;
     node->literal_type = LITERAL_TYPE_STRING;
@@ -30,6 +39,7 @@ AstNode* create_string_literal_node(char* value) {
 }
 
 AstNode* create_binary_expr_node(char op, AstNode* left, AstNode* right) {
+    /* Crea un nodo de expresión binaria */
     BinaryExprNode* node = malloc(sizeof(BinaryExprNode));
     node->base.type = NODE_TYPE_BINARY_EXPR;
     node->op = op;
@@ -39,6 +49,7 @@ AstNode* create_binary_expr_node(char op, AstNode* left, AstNode* right) {
 }
 
 AstNode* create_procedure_call_node(char* name, ArgumentListNode* args) {
+    /* Crea un nodo de llamada a procedimiento */
     ProcedureCallNode* node = malloc(sizeof(ProcedureCallNode));
     node->base.type = NODE_TYPE_PROCEDURE_CALL;
     node->name = name;
@@ -47,6 +58,7 @@ AstNode* create_procedure_call_node(char* name, ArgumentListNode* args) {
 }
 
 ArgumentListNode* create_argument_list_node(AstNode* arg, ArgumentListNode* next) {
+    /* Crea un nodo de lista de argumentos */
     ArgumentListNode* node = malloc(sizeof(ArgumentListNode));
     node->base.type = NODE_TYPE_ARGUMENT_LIST;
     node->argument = arg;
@@ -55,6 +67,7 @@ ArgumentListNode* create_argument_list_node(AstNode* arg, ArgumentListNode* next
 }
 
 StatementListNode* append_to_statement_list(StatementListNode* list, AstNode* stmt) {
+    /* Añade una sentencia al final de la lista de sentencias */
     if (list == NULL) {
         return create_statement_list_node(stmt, NULL);
     }
@@ -66,6 +79,7 @@ StatementListNode* append_to_statement_list(StatementListNode* list, AstNode* st
     return list;
 }
 StatementListNode* create_statement_list_node(AstNode* stmt, StatementListNode* next) {
+    /* Crea un nodo de lista de sentencias */
     StatementListNode* node = malloc(sizeof(StatementListNode));
     node->base.type = NODE_TYPE_STATEMENT_LIST;
     node->statement = stmt;
@@ -74,6 +88,7 @@ StatementListNode* create_statement_list_node(AstNode* stmt, StatementListNode* 
 }
 
 AstNode* create_assign_node(AstNode* target, AstNode* expr) {
+    /* Crea un nodo de asignación */
     AssignNode* node = malloc(sizeof(AssignNode));
     node->base.type = NODE_TYPE_ASSIGN;
     node->target = target;
@@ -82,6 +97,7 @@ AstNode* create_assign_node(AstNode* target, AstNode* expr) {
 }
 
 AstNode* create_variable_node(char* name) {
+    /* Crea un nodo de variable */
     VariableNode* node = malloc(sizeof(VariableNode));
     node->base.type = NODE_TYPE_VARIABLE;
     node->name = name;
@@ -89,6 +105,7 @@ AstNode* create_variable_node(char* name) {
 }
 
 AstNode* create_if_node(AstNode* condition, StatementListNode* then_branch, StatementListNode* else_branch) {
+    /* Crea un nodo de estructura if-then-else */
     IfNode* node = malloc(sizeof(IfNode));
     node->base.type = NODE_TYPE_IF;
     node->condition = condition;
@@ -98,6 +115,7 @@ AstNode* create_if_node(AstNode* condition, StatementListNode* then_branch, Stat
 }
 
 AstNode* create_comparison_expr_node(int op, AstNode* left, AstNode* right) {
+    /* Crea un nodo de expresión de comparación */
     ComparisonExprNode* node = malloc(sizeof(ComparisonExprNode));
     node->base.type = NODE_TYPE_COMPARISON_EXPR;
     node->op = op;
@@ -107,6 +125,7 @@ AstNode* create_comparison_expr_node(int op, AstNode* left, AstNode* right) {
 }
 
 AstNode* create_loop_node(StatementListNode* init, AstNode* condition, StatementListNode* body) {
+    /* Crea un nodo de bucle (loop) */
     LoopNode* node = malloc(sizeof(LoopNode));
     node->base.type = NODE_TYPE_LOOP;
     node->initialization = init;
@@ -116,6 +135,7 @@ AstNode* create_loop_node(StatementListNode* init, AstNode* condition, Statement
 }
 
 AstNode* create_attribute_access_node(AstNode* obj_node, char* attr_name) {
+    /* Crea un nodo de acceso a atributo */
     AttributeAccessNode* node = malloc(sizeof(AttributeAccessNode));
     node->base.type = NODE_TYPE_ATTRIBUTE_ACCESS;
     node->object_node = obj_node;
@@ -124,6 +144,7 @@ AstNode* create_attribute_access_node(AstNode* obj_node, char* attr_name) {
 }
 
 AstNode* create_method_call_node(AstNode* obj_node, char* method_name, ArgumentListNode* args) {
+    /* Crea un nodo de llamada a método */
     MethodCallNode* node = malloc(sizeof(MethodCallNode));
     node->base.type = NODE_TYPE_METHOD_CALL;
     node->object_node = obj_node;
@@ -133,6 +154,7 @@ AstNode* create_method_call_node(AstNode* obj_node, char* method_name, ArgumentL
 }
 
 AstNode* create_create_node(char* obj_name) {
+    /* Crea un nodo de creación de objeto */
     CreateNode* node = malloc(sizeof(CreateNode));
     node->base.type = NODE_TYPE_CREATE;
     node->object_name = obj_name;
@@ -141,6 +163,7 @@ AstNode* create_create_node(char* obj_name) {
 }
 
 ArgumentListNode* reverse_argument_list(ArgumentListNode* list) {
+    /* Invierte una lista encadenada de argumentos (útil porque el parser construye en orden inverso) */
     ArgumentListNode *prev = NULL, *current = list, *next = NULL;
     while (current != NULL) {
         next = current->next;
@@ -151,18 +174,20 @@ ArgumentListNode* reverse_argument_list(ArgumentListNode* list) {
     return prev;
 }
 
-// --- IMPLEMENTACIONES PARA DECLARACIONES ---
+/* --- IMPLEMENTACIONES PARA DECLARACIONES --- */
 
+/* create_declaration_list_node: construye listas de declaraciones (variables) */
 DeclarationListNode* create_declaration_list_node(char* name, DeclarationListNode* next) {
     DeclarationListNode* node = malloc(sizeof(DeclarationListNode));
     node->base.type = NODE_TYPE_DECLARATION_LIST;
     node->variable_name = name;
-    node->type_name = NULL; // NUEVO: por defecto sin tipo
+    node->type_name = NULL; // por defecto sin tipo
     node->next = next;
     return node;
 }
 
 DeclarationListNode* append_to_declaration_list(DeclarationListNode* list, DeclarationListNode* new_decls) {
+    /* Añade nuevas declaraciones al final de la lista de declaraciones */
     if (!list) return new_decls;
     DeclarationListNode* current = list;
     while (current->next) {
@@ -172,7 +197,7 @@ DeclarationListNode* append_to_declaration_list(DeclarationListNode* list, Decla
     return list;
 }
 
-// NUEVA FUNCIÓN: asigna type_name a todos los nodos de la lista
+/* NUEVA FUNCIÓN: asigna type_name a todos los nodos de la lista */
 void set_declaration_type(DeclarationListNode* list, char* type_name) {
     DeclarationListNode* cur = list;
     while (cur) {
@@ -182,6 +207,7 @@ void set_declaration_type(DeclarationListNode* list, char* type_name) {
 }
 
 AstNode* create_feature_body_node(DeclarationListNode* decls, StatementListNode* stmts) {
+    /* Crea un nodo de cuerpo de feature (con declaraciones y sentencias) */
     FeatureBodyNode* node = malloc(sizeof(FeatureBodyNode));
     node->base.type = NODE_TYPE_FEATURE_BODY;
     node->declarations = decls;
@@ -191,6 +217,7 @@ AstNode* create_feature_body_node(DeclarationListNode* decls, StatementListNode*
 }
 
 AstNode* create_class_node(char* name, StatementListNode* features) {
+    /* Crea un nodo de declaración de clase */
     ClassNode* node = malloc(sizeof(ClassNode));
     node->base.type = NODE_TYPE_CLASS_DECL;
     node->name = name;
@@ -199,7 +226,12 @@ AstNode* create_class_node(char* name, StatementListNode* features) {
 }
 
 
-// --- Implementaciones para imprimir y liberar el AST ---
+/* --- Implementaciones para imprimir y liberar el AST ---
+
+   print_ast / print_ast_internal:
+   - Recorren el AST recursivamente e imprimen información legible.
+   - Útil para depuración y para el archivo .info que genera main.c.
+*/
 
 #include <stdarg.h>
 
@@ -388,6 +420,7 @@ static void free_ast_internal(AstNode *node) {
 
     switch (node->type) {
         case NODE_TYPE_LITERAL: {
+            /* Liberar strings si es necesario */
             LiteralNode *n = (LiteralNode*)node;
             if (n->literal_type == LITERAL_TYPE_STRING && n->value.string_val) {
                 free(n->value.string_val);
@@ -484,6 +517,7 @@ static void free_ast_internal(AstNode *node) {
             return; // El bucle ya libera el nodo
         }
         case NODE_TYPE_FEATURE_BODY: {
+            /* Liberar nombre de feature, declaraciones y sentencias */
             FeatureBodyNode *n = (FeatureBodyNode*)node;
             if (n->feature_name) free(n->feature_name);
             if (n->declarations) free_ast_internal((AstNode*)n->declarations);
@@ -503,5 +537,6 @@ static void free_ast_internal(AstNode *node) {
 }
 
 void free_ast(AstNode *node) {
+    /* Wrapper público para liberar todo el AST */
     free_ast_internal(node);
 }

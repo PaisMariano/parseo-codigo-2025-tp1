@@ -7,6 +7,12 @@
 #include "token_utils.h"
 
 extern YYSTYPE yylval;
+
+/* Comentario: Este archivo define el analizador léxico (Flex).
+   - Reconoce identificadores, números enteros y reales, strings, palabras reservadas y operadores.
+   - Para cada token, usa print_token() para registrar información en el .info y luego devuelve el token al parser.
+   - Las reglas están ordenadas de mayor a menor prioridad (strings y números antes que identificadores).
+*/
 %}
 
 %option noyywrap yylineno nounput noinput
@@ -15,6 +21,15 @@ DIGIT    [0-9]
 ID       [a-zA-Z_][a-zA-Z0-9_]*
 
 %%
+/* Reglas principales:
+   - Ignoramos espacios, saltos y comentarios.
+   - Palabras reservadas: "class", "feature", "do", ...
+   - Números: se reconocen reales y enteros (orden importante).
+   - Strings: se extrae el texto sin comillas.
+   - Identificadores: se copian para que el parser cree nodos con el nombre.
+   - Operadores y símbolos retornan su token correspondiente.
+*/
+
 [ \t\r]+          { /* Ignorar espacios en blanco */ }
 \n                { /* Ignorar saltos de línea */ }
 "--".*            { /* Ignorar comentarios */ }

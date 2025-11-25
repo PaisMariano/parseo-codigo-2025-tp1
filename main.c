@@ -13,6 +13,12 @@ void register_classes_from_ast(AstNode* node);
 
 FILE *info_file_ptr = NULL;
 
+/* Comentario:
+   - main.c orquesta el proceso: abre el archivo, crea un .info para tokens/AST,
+     parsea con Bison, registra clases, y ejecuta MAIN.make si existe.
+   - Al final escribe el estado de la tabla de símbolos en el archivo .info para depuración.
+*/
+
 int main(int argc, char **argv) {
     if (argc > 1) {
         yyin = fopen(argv[1], "r");
@@ -88,6 +94,10 @@ int main(int argc, char **argv) {
     return 0;
 }
 
+/* register_classes_from_ast:
+   - Recorre la lista de sentencias en la raíz y registra las clases encontradas en class_table.
+   - Esto separa la fase de parseo de la de ejecución.
+*/
 void register_classes_from_ast(AstNode* node) {
     if (!node || node->type != NODE_TYPE_STATEMENT_LIST) {
         return;
@@ -102,6 +112,7 @@ void register_classes_from_ast(AstNode* node) {
     }
 }
 
+/* find_feature: busca un método por nombre dentro de la lista de features de una clase */
 FeatureBodyNode* find_feature(StatementListNode* feature_list, const char* feature_name) {
     StatementListNode* current = feature_list;
     while (current) {

@@ -3,6 +3,12 @@
 
 #include <stdio.h>
 
+/* Comentario general:
+   - Este header define los nodos del AST usados por el parser y el intérprete.
+   - Cada nodo comienza con AstNode (campo 'type') para permitir dispatch por switch.
+   - Hay nodos para literales, expresiones binarias, listas, llamadas, declaraciones y clases.
+*/
+
 // Tipos de nodos del AST
 typedef enum {
     NODE_TYPE_LITERAL,
@@ -20,22 +26,24 @@ typedef enum {
     NODE_TYPE_CREATE,
     NODE_TYPE_DECLARATION_LIST,
     NODE_TYPE_FEATURE_BODY,
-    NODE_TYPE_CLASS_DECL // Nuevo tipo para una declaración de clase
+    NODE_TYPE_CLASS_DECL // Nodo para una declaración de clase completa
 } NodeType;
 
-// Tipos de literales
+/* Tipos de literales:
+   - INT, REAL y STRING se manejan con union en LiteralNode.
+*/
 typedef enum {
     LITERAL_TYPE_INT,
     LITERAL_TYPE_REAL,
     LITERAL_TYPE_STRING
 } LiteralType;
 
-// Estructura base para todos los nodos del AST
+/* Estructura base para nodos del AST */
 typedef struct AstNode {
     NodeType type;
 } AstNode;
 
-// Nodo para literales (números, strings)
+/* Nodo para literales (números, strings) */
 typedef struct {
     AstNode base;
     LiteralType literal_type;
@@ -46,7 +54,7 @@ typedef struct {
     } value;
 } LiteralNode;
 
-// Nodo para expresiones binarias (ej. a + b)
+/* Nodo para expresiones binarias (ej. a + b) */
 typedef struct {
     AstNode base;
     char op;
@@ -54,7 +62,7 @@ typedef struct {
     struct AstNode *right;
 } BinaryExprNode;
 
-// Nodo para expresiones de comparación (ej. a > b)
+/* Nodo para expresiones de comparación (ej. a > b) */
 typedef struct {
     AstNode base;
     int op;
@@ -62,28 +70,28 @@ typedef struct {
     struct AstNode *right;
 } ComparisonExprNode;
 
-// Nodo para una lista de argumentos
+/* Nodo para una lista de argumentos (encadenada) */
 typedef struct ArgumentListNode {
     AstNode base;
     AstNode *argument;
     struct ArgumentListNode *next;
 } ArgumentListNode;
 
-// Nodo para una llamada a procedimiento (ej. print("hola"))
+/* Llamada a procedimiento global (ej. print("hola")) */
 typedef struct {
     AstNode base;
     char *name;
     ArgumentListNode *arguments;
 } ProcedureCallNode;
 
-// Nodo para una lista de sentencias (el cuerpo de un 'do')
+/* Lista de sentencias (cuerpo de métodos o bloques) */
 typedef struct StatementListNode {
     AstNode base;
     AstNode *statement;
     struct StatementListNode *next;
 } StatementListNode;
 
-// Nodo para una sentencia if-then-else
+/* Nodo para if-then-else */
 typedef struct {
     AstNode base;
     AstNode *condition;
@@ -91,20 +99,22 @@ typedef struct {
     StatementListNode *else_branch;
 } IfNode;
 
-// Nodo para una asignación (ej. x := 10 o c.value := 10)
+/* Asignación: target := expression
+   - target puede ser VariableNode o AttributeAccessNode
+*/
 typedef struct {
     AstNode base;
-    AstNode *target; // Puede ser VariableNode o AttributeAccessNode
+    AstNode *target;
     AstNode *expression;
 } AssignNode;
 
-// Nodo para el uso de una variable (ej. print(x))
+/* Uso de variable por nombre */
 typedef struct {
     AstNode base;
     char *name;
 } VariableNode;
 
-// Nodo para un bucle from-until
+/* Bucle from-until: initializations, condition, body */
 typedef struct {
     AstNode base;
     StatementListNode *initialization;
@@ -112,14 +122,14 @@ typedef struct {
     StatementListNode *loop_body;
 } LoopNode;
 
-// Nodo para acceso a atributos (ej. c.value)
+/* Acceso a atributos: objeto.atributo */
 typedef struct {
     AstNode base;
     AstNode *object_node;
     char *attribute_name;
 } AttributeAccessNode;
 
-// Nodo para llamada a método (ej. c.inc)
+/* Llamada a método: objeto.method(args) */
 typedef struct {
     AstNode base;
     AstNode *object_node;
@@ -127,24 +137,22 @@ typedef struct {
     ArgumentListNode *arguments;
 } MethodCallNode;
 
-// Nodo para 'create' (ej. create c)
+/* 'create' crea una instancia y la asigna a un nombre */
 typedef struct {
     AstNode base;
     char *object_name;
-    char *class_name; // Añadido para saber qué clase instanciar
+    char *class_name; // Nombre de clase asociado (si se resuelve)
 } CreateNode;
 
-// --- ESTRUCTURAS PARA DECLARACIONES ---
-
-// Nodo para una lista de declaraciones de variables
+/* Lista de declaraciones de variables (nombre + tipo opcional) */
 typedef struct DeclarationListNode {
     AstNode base;
     char *variable_name;
-    char *type_name; // NUEVO: nombre del tipo (por ejemplo "INTEGER" o nombre de clase)
+    char *type_name; // Nombre del tipo (ej. "INTEGER" o nombre de clase)
     struct DeclarationListNode *next;
 } DeclarationListNode;
 
-// Nodo que combina declaraciones y sentencias
+/* Cuerpo de feature/método: nombre, declaraciones y sentencias */
 typedef struct {
     AstNode base;
     char *feature_name; // Nombre del método/feature
@@ -152,15 +160,16 @@ typedef struct {
     StatementListNode *statements;
 } FeatureBodyNode;
 
-// Nodo para una declaración de clase completa
+/* Nodo para declaración de clase:
+   - name y lista de features (atributos y métodos)
+*/
 typedef struct {
     AstNode base;
     char *name;
     StatementListNode *features;
 } ClassNode;
 
-
-// Funciones para crear nodos del AST
+/* Prototipos: funciones para crear y manejar el AST (usadas por parser y main) */
 AstNode* create_binary_expr_node(char op, AstNode* left, AstNode* right);
 AstNode* create_int_literal_node(int value);
 AstNode* create_real_literal_node(double value);

@@ -8,6 +8,12 @@
 
 struct SymbolTable;
 
+/* Comentario general:
+   - Define los tipos de valores en tiempo de ejecución y la estructura de la tabla de símbolos.
+   - La tabla de símbolos puede tener un padre para modelar scope en métodos (encadenamiento).
+   - También se mantiene una tabla global de definiciones de clase.
+*/
+
 // Tipos de valores en tiempo de ejecución
 typedef enum {
     VAL_TYPE_INT,
@@ -18,7 +24,7 @@ typedef enum {
     VAL_TYPE_NULL // Para variables declaradas pero no inicializadas
 } ValueType;
 
-// Estructura para un valor en tiempo de ejecución
+/* RuntimeValue: representa un valor en ejecución (primitivo o referencia a objeto) */
 typedef struct {
     ValueType type;
     union {
@@ -29,25 +35,33 @@ typedef struct {
     } as;
 } RuntimeValue;
 
-// Entrada en la tabla de símbolos
+/* Entrada en la tabla de símbolos:
+   - name: nombre de la variable
+   - value: valor actual
+   - type_name: tipo declarado si existe (ej. "INTEGER" o nombre de clase) para resolver 'create'
+*/
 typedef struct {
     char *name;
     RuntimeValue value;
-    char *type_name; // NUEVO: tipo declarado (puede ser "INTEGER", nombre de clase, etc.)
+    char *type_name; // tipo declarado
 } SymbolTableEntry;
 
-// Tabla de símbolos (ahora puede tener un 'padre' para el alcance anidado)
+/* Tabla de símbolos:
+   - entries almacena variables/atributos locales o de objeto
+   - parent apunta al scope externo (por ejemplo, el objeto al ejecutar un método)
+   - owner_class_name señala si esta tabla representa un objeto de clase X
+*/
 typedef struct SymbolTable {
     SymbolTableEntry entries[MAX_SYMBOLS];
     int count;
-    struct SymbolTable* parent; // Puntero a la tabla de símbolos externa (para métodos)
-    char* owner_class_name; // Nombre de la clase si esta tabla representa un objeto
+    struct SymbolTable* parent;
+    char* owner_class_name;
 } SymbolTable;
 
-// --- Estructuras para la gestión de clases ---
+/* Definición de clase: nombre y AST con features (atributos/métodos) */
 typedef struct {
     char* name;
-    StatementListNode* feature_list; // AST de los features de la clase
+    StatementListNode* feature_list;
 } ClassDefinition;
 
 extern ClassDefinition class_table[MAX_CLASSES];

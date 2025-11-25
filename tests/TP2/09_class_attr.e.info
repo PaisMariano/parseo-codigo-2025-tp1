@@ -84,8 +84,8 @@ StatementList
 ----------------
 
 --- Symbol Table State ---
-SymbolTable at 0x16dd9e148 (Scope)
-  - c (type: COUNTER) = [Object of class COUNTER at 0x153008200]
-    SymbolTable at 0x153008200 (Class: COUNTER)
+SymbolTable at 0x16d14e148 (Scope)
+  - c (type: COUNTER) = [Object of class COUNTER at 0x13a80ea00]
+    SymbolTable at 0x13a80ea00 (Class: COUNTER)
       - value (type: INTEGER) = 5
 --------------------------

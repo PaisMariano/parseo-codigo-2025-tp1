@@ -131,7 +131,7 @@ StatementList
 ----------------
 
 --- Symbol Table State ---
-SymbolTable at 0x16f9f2148 (Scope)
+SymbolTable at 0x16ce2e148 (Scope)
   - n (type: INTEGER) = 6
   - i (type: INTEGER) = 6
   - t (type: INTEGER) = 13

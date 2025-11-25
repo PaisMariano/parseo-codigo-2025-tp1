@@ -54,7 +54,7 @@ StatementList
 ----------------
 
 --- Symbol Table State ---
-SymbolTable at 0x16eff6148 (Scope)
+SymbolTable at 0x16b842148 (Scope)
   - y (type: INTEGER) = 15
   - x (type: INTEGER) = 10
 --------------------------

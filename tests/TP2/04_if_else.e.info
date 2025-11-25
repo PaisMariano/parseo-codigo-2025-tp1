@@ -62,6 +62,6 @@ StatementList
 ----------------
 
 --- Symbol Table State ---
-SymbolTable at 0x16d156148 (Scope)
+SymbolTable at 0x16ba12148 (Scope)
   - x (type: INTEGER) = 4
 --------------------------

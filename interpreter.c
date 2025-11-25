@@ -5,11 +5,22 @@
 #include "ast.h"
 #include "parser.tab.h"
 
+/* Comentario general:
+   - Este archivo implementa la ejecución del AST.
+   - Mantiene una tabla global de clases (class_table) y funciones para manipular tablas de símbolos.
+   - eval_ast recorre nodos y evalúa su semántica: literales, expresiones, asignaciones, creación de objetos y llamadas a métodos.
+*/
+
 // --- Tabla Global de Clases ---
 ClassDefinition class_table[MAX_CLASSES];
 int class_count = 0;
 
-// --- Funciones para la Tabla de Símbolos ---
+/* --- Funciones para la Tabla de Símbolos ---
+   - init_symbol_table: inicializa una tabla (uso para scopes y objetos).
+   - set_symbol, get_symbol, declare_symbol: manipulan variables y atributos.
+   - get_symbol implementa búsqueda con fallback a parent para resolver variables en scopes anidados.
+*/
+
 void init_symbol_table(SymbolTable *table) {
     table->count = 0;
     table->parent = NULL;
@@ -123,6 +134,10 @@ ClassDefinition* find_class(const char* name) {
 }
 
 
+/* print_value y fprint_value: utilidades para mostrar valores durante ejecución/debug.
+   - print_symbol_table imprime recursivamente tablas de objetos (útil para el .info final).
+*/
+
 void print_value(RuntimeValue value) {
     switch (value.type) {
         case VAL_TYPE_INT:
@@ -142,8 +157,6 @@ void print_value(RuntimeValue value) {
             break;
     }
 }
-
-// --- Nuevas funciones para imprimir la tabla de símbolos ---
 
 // Imprime un valor en un stream específico (para depuración)
 static void fprint_value(FILE* stream, RuntimeValue value) {
@@ -207,13 +220,18 @@ void print_symbol_table(SymbolTable *table, FILE *output) {
 }
 
 
-// --- Función principal del Intérprete ---
+/* eval_ast: función central de ejecución. Recorre el AST y evalúa cada tipo de nodo.
+   - Important cases: NODE_TYPE_CREATE inicializa un SymbolTable para el objeto y define atributos con valores por defecto.
+   - NODE_TYPE_METHOD_CALL y NODE_TYPE_FEATURE_BODY: crean scopes anidados para ejecutar métodos con acceso a 'Current' (obj_table).
+   - NODE_TYPE_PROCEDURE_CALL: llamadas globales como print.
+*/
 RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
     RuntimeValue result = { .type = VAL_TYPE_VOID };
     if (!node) return result;
 
     switch (node->type) {
         case NODE_TYPE_LITERAL: {
+            /* Literales: construir RuntimeValue correspondiente */
             LiteralNode *n = (LiteralNode*)node;
             switch (n->literal_type) {
                 case LITERAL_TYPE_INT:    result.type = VAL_TYPE_INT; result.as.int_val = n->value.int_val; break;
@@ -224,6 +242,8 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_BINARY_EXPR: {
+            /* Evaluar ambos lados y operar (suma, resta, mult, div).
+               También maneja concatenación de strings con '+'. */
             BinaryExprNode *n = (BinaryExprNode*)node;
             RuntimeValue left = eval_ast(n->left, table);
             RuntimeValue right = eval_ast(n->right, table);
@@ -257,6 +277,7 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_PROCEDURE_CALL: {
+            /* Procedimientos globales: por ahora 'print' imprime los argumentos evaluados */
             ProcedureCallNode *n = (ProcedureCallNode*)node;
             if (strcmp(n->name, "print") == 0) {
                 ArgumentListNode *arg = n->arguments;
@@ -271,6 +292,7 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_STATEMENT_LIST: {
+            /* Ejecuta cada sentencia en secuencia */
             StatementListNode *list = (StatementListNode*)node;
             while (list) {
                 eval_ast(list->statement, table);
@@ -280,6 +302,7 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_ASSIGN: {
+            /* Asignación: resolver target (variable o atributo) y usar set_symbol en el scope apropiado */
             AssignNode *n = (AssignNode*)node;
             RuntimeValue value_to_assign = eval_ast(n->expression, table);
 
@@ -303,6 +326,7 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_VARIABLE: {
+            /* Lectura de variable: get_symbol busca en scope actual y padres */
             VariableNode *n = (VariableNode*)node;
             result = get_symbol(table, n->name);
             // Si el valor es un string, duplicarlo para que el que llama sea dueño de la memoria.
@@ -313,6 +337,7 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_COMPARISON_EXPR: {
+            /* Comparaciones <, <=, >, >=, == devolviendo entero 0/1 */
             ComparisonExprNode *n = (ComparisonExprNode*)node;
             RuntimeValue left = eval_ast(n->left, table);
             RuntimeValue right = eval_ast(n->right, table);
@@ -329,6 +354,7 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_IF: {
+            /* If: evaluar condición y ejecutar rama correspondiente */
             IfNode *n = (IfNode*)node;
             RuntimeValue cond = eval_ast(n->condition, table);
             if (cond.as.int_val != 0) {
@@ -340,6 +366,7 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_LOOP: {
+            /* Loop: ejecutar inicializaciones y luego el cuerpo mientras la condición sea falsa (según semántica original) */
             LoopNode *n = (LoopNode*)node;
             eval_ast((AstNode*)n->initialization, table);
             while(eval_ast(n->condition, table).as.int_val == 0) {
@@ -349,6 +376,10 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_CREATE: {
+            /* Create: instancia un objeto creando una nueva SymbolTable y registrando atributos con valores por defecto
+               según el tipo declarado (INTEGER -> 0, REAL -> 0.0, STRING -> "").
+               Luego asigna el objeto a la variable en el scope actual.
+            */
             CreateNode *n = (CreateNode*)node;
             SymbolTableEntry* var_entry = find_symbol_entry(table, n->object_name);
             if (var_entry && var_entry->value.type == VAL_TYPE_NULL) {
@@ -408,6 +439,10 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_ATTRIBUTE_ACCESS: {
+            /* Attribute access: si el nombre corresponde a un método, devolvemos un método sin ejecutar;
+               si es atributo, obtenemos su valor desde la tabla del objeto.
+               Nota: aquí también se busca el método en la definición de la clase.
+            */
             AttributeAccessNode *n = (AttributeAccessNode*)node;
             RuntimeValue object_val = eval_ast(n->object_node, table);
             if (object_val.type == VAL_TYPE_OBJECT) {
@@ -445,6 +480,9 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_METHOD_CALL: {
+            /* Method call: buscar el FeatureBodyNode en la definición de la clase, crear un método_scope
+               cuyo parent es la tabla del objeto (permite acceso a atributos vía get_symbol) y ejecutar el cuerpo.
+            */
             MethodCallNode *n = (MethodCallNode*)node;
             RuntimeValue object_val = eval_ast(n->object_node, table);
             if (object_val.type != VAL_TYPE_OBJECT) break;
@@ -476,6 +514,11 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_FEATURE_BODY: {
+            /* Ejecutar un feature/método:
+               - declarar variables locales y parámetros en la tabla pasada (tabla puede ser método_scope).
+               - ejecutar las sentencias del cuerpo.
+               - Si se soportara 'Result', aquí se leería/retornaría.
+            */
             FeatureBodyNode *body_node = (FeatureBodyNode*) node;
             DeclarationListNode *decls = body_node->declarations;
             while (decls) {
@@ -488,11 +531,12 @@ RuntimeValue eval_ast(AstNode *node, SymbolTable *table) {
         }
 
         case NODE_TYPE_CLASS_DECL:
-            // Las clases se registran en main, no se evalúan directamente.
+            /* Las clases se registran en main.c mediante register_classes_from_ast, no se evalúan aquí. */
             break;
 
         case NODE_TYPE_DECLARATION_LIST:
         case NODE_TYPE_ARGUMENT_LIST:
+            /* No acción por defecto aquí (se usan por create/feature) */
             break;
     }
     return result;

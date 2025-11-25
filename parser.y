@@ -11,6 +11,13 @@
 
     void yyerror(AstNode **root, const char *s);
     AstNode *root_node;
+
+    /* Comentario: Este archivo define la gramática (Bison) para el lenguaje.
+       - %union define los tipos semánticos usados en las reglas.
+       - Muchas producciones devuelven nodos del AST (AstNode* o listas especializadas).
+       - parse-param se usa para recibir un puntero al root desde main.c.
+       - Las reglas más importantes: program, class_list, class_declaration, feature_declaration, statement, expression.
+    */
 %}
 
 %union {
@@ -53,15 +60,22 @@
 
 %%
 
+/* Programa principal: puede ser una lista de clases o sentencias sueltas (tests antiguos) */
 program:
     class_list { *root = (AstNode*)$1; }
     | optional_statements { *root = (AstNode*)$1; } /* Para tests sin clases */
     ;
 
 class_list:
-    class_declaration { $$ = create_statement_list_node($1, NULL); }
-    | class_list class_declaration { $$ = append_to_statement_list($1, $2); }
-    ;
+    class_declaration {
+        /* Crea una lista de clases con un solo elemento (caso base recursivo) */
+        $$ = create_statement_list_node($1, NULL);
+    }
+    | class_list class_declaration {
+        /* Agrega una nueva clase al final de la lista de clases (caso recursivo) */
+        $$ = append_to_statement_list($1, $2);
+    }
+;
 
 class_declaration:
     TOKEN_CLASS TOKEN_IDENTIFIER TOKEN_FEATURE feature_list TOKEN_END {
